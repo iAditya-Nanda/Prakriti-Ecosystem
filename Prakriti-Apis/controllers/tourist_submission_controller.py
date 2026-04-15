@@ -142,6 +142,26 @@ def get_all_tourist_submissions():
             q = q.filter(TouristSubmission.user_id == int(user_id))
 
         apps = q.order_by(TouristSubmission.created_at.desc()).all()
+        if not apps and status == "pending":
+            # Provide Mock Queue for Demo
+            mock_apps = [
+                {
+                    "id": 501, "user_id": 7, "title": "Correct Disposal: Plastic Bottle",
+                    "location": "River Side, Kullu", "status": "pending",
+                    "image": "https://prakriti.org/demo/bottle.jpg",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "reviewer_id": None, "remarks": None
+                },
+                {
+                    "id": 502, "user_id": 12, "title": "Paper Waste Recycled",
+                    "location": "Mall Road, Shimla", "status": "pending",
+                    "image": "https://prakriti.org/demo/paper.jpg",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "reviewer_id": None, "remarks": None
+                }
+            ]
+            return jsonify({"submissions": mock_apps}), 200
+
         data = [{
             "id": a.id,
             "user_id": a.user_id,

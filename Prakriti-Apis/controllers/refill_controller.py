@@ -68,6 +68,15 @@ def get_refill_stations():
     db = SessionLocal()
     try:
         stations = db.query(RefillStation).all()
+        if not stations:
+            # Provide Mock Stations for Demo
+            mock_data = [
+                {"id": 1, "name": "Mall Road Eco-Station", "distance": "200m", "status": "Active", "coords": {"latitude": 31.1048, "longitude": 77.1734}},
+                {"id": 2, "name": "Bus Stand Refill Point", "distance": "800m", "status": "Active", "coords": {"latitude": 31.1033, "longitude": 77.1722}},
+                {"id": 3, "name": "Ridge Eco-Hub", "distance": "1.2km", "status": "Maintenance", "coords": {"latitude": 31.1055, "longitude": 77.1755}}
+            ]
+            return jsonify({"refillStations": mock_data}), 200
+
         data = [
             {
                 "id": s.id,

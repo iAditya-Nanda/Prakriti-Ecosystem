@@ -16,7 +16,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
-const SERVER_IP = "http://100.116.141.56";
+const SERVER_IP = "http://192.168.31.3";
 const CHAT_URL = `${SERVER_IP}:8001/chat`;
 const CLEAR_URL = `${SERVER_IP}:8001/clear_history`;
 const ANALYZE_URL = `${SERVER_IP}:8000/analyze`;

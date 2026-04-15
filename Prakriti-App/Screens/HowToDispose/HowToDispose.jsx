@@ -15,8 +15,8 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImageManipulator from "expo-image-manipulator";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
-const ANALYZER_URL = "http://100.116.141.56:8000/analyze";
-const SUBMIT_SERVER = "http://100.111.185.121:8080";
+const ANALYZER_URL = "http://192.168.31.3:8000/analyze";
+const SUBMIT_SERVER = "http://192.168.31.3:8080";
 
 const HowToDisposeScreen = ({ navigation }) => {
   const [permission, requestPermission] = useCameraPermissions();

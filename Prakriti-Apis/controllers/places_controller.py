@@ -75,6 +75,15 @@ def get_all_places():
     db = SessionLocal()
     try:
         results = db.query(Place).all()
+        if not results:
+            # Provide Mock Places for Demo
+            mock_data = [
+                {"id": 1, "name": "Jakhu Temple Hill", "distance": "2.4km", "type": "Trek • Scenic", "level": "Easy", "tags": ["Nature", "Eco-Trail"], "coords": {"latitude": 31.1010, "longitude": 77.1850}},
+                {"id": 2, "name": "Chadwick Falls", "distance": "7.0km", "type": "Waterfall • Forest", "level": "Moderate", "tags": ["Water", "Quiet"], "coords": {"latitude": 31.1150, "longitude": 77.1450}},
+                {"id": 3, "name": "Viceregal Lodge", "distance": "3.5km", "type": "Heritage • Garden", "level": "Easy", "tags": ["Architecture", "Parks"], "coords": {"latitude": 31.1030, "longitude": 77.1430}}
+            ]
+            return jsonify({"places": mock_data}), 200
+
         data = [
             {
                 "id": p.id,

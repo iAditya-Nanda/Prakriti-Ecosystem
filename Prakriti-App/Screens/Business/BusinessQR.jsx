@@ -6,7 +6,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import QRCode from "react-native-qrcode-svg";
 
-const SERVER = "http://100.111.185.121:8080";
+const SERVER = "http://192.168.31.3:8080";
 
 const BusinessQR = ({ navigation }) => {
   const insets = useSafeAreaInsets();

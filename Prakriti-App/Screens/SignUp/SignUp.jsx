@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_BASE = "http://100.111.185.121:8080/api/v1/auth/signup";
+const API_BASE = "http://192.168.31.3:8080/api/v1/auth/signup";
 
 const Signup = ({ navigation, route }) => {
   const initialRole = route?.params?.role || "user";

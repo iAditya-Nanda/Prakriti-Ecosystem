@@ -11,7 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import MapView, { Marker } from "react-native-maps";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
-const SERVER_IP = "http://100.111.185.121:8080";
+const SERVER_IP = "http://192.168.31.3:8080";
 
 const levelColor = {
     Gold: "#CFAA62",

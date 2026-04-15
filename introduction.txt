@@ -1,0 +1,67 @@
+# 🌱 Prakriti: Eco-Reward Sustainability Ecosystem
+
+## 🌿 Overview
+Prakriti (meaning "Nature") is a comprehensive, multi-platform ecosystem designed to incentivize and reward environmental sustainability. The project integrates blockchain technology, artificial intelligence, and mobile/web platforms to create a transparent circular economy where eco-friendly actions are recognized and rewarded with "Green Points" (GP).
+
+---
+
+## 🏗️ System Architecture
+
+### 1. 🐍 Core Backend (Prakriti-Apis)
+- **Framework**: Python / Flask
+- **Purpose**: The central nervous system of the project. It handles:
+  - User Authentication & Profile Management
+  - Task Lifecycle (Composting, Refilling, Waste Management)
+  - QR Code System for verification
+  - Business & Verifier modules
+  - Integration with the local blockchain and AI services
+
+### 2. ⛓️ Green Points Blockchain (greenPoints-local-Blockchain)
+- **Framework**: Custom Python implementation
+- **Consensus**: Proof-of-Work (SHA-256)
+- **Purpose**: A localized, transparent ledger for the project's economy. It ensures:
+  - **Immutability**: All earned Green Points are recorded on a tamper-proof chain.
+  - **Verified Rewards**: Prevents double-spending and ensures "SYSTEM" rewards are authentic.
+  - **Transparency**: A full history of environmental tasks completed across the ecosystem.
+
+### 3. 🤖 AI Backend (ai-backend)
+- **Framework**: Python / Flask / Ollama
+- **Key Services**:
+  - **PrakritiK AI Chat**: A sustainability expert chatbot providing real-time eco-conscious guidance.
+  - **Vision Server**: Computer vision models (e.g., YOLO/CLIP via local LLMs) for validating user submissions (e.g., verifying a "tree planted" photo).
+
+### 4. 📱 User Mobile App (Prakriti-App)
+- **Framework**: React Native
+- **Purpose**: The primary interface for users to:
+  - Track their carbon footprint
+  - Discover local green initiatives
+  - Scan QR codes to log tasks
+  - Manage their Green Points wallet
+
+### 5. 📊 Admin Dashboard (Prakriti-Dashboard)
+- **Framework**: React / Vite
+- **Purpose**: A high-level monitoring tool for administrators and stakeholders to:
+  - Track total system impact
+  - Manage business partnerships
+  - View real-time blockchain statistics and leaderboards
+
+---
+
+## 🚀 Key Features
+- **Circular Economy**: Earn GP by recycling, composting, or using refills; spend GP at partner eco-businesses.
+- **Local Blockchain**: Decentralized record-keeping that can run independently of global networks.
+- **AI Verification**: Automated validation of green tasks using image recognition to prevent fraudulent claims.
+- **Gamified Sustainability**: Leaderboards and progression systems to encourage long-term environmental commitment.
+
+---
+
+## 📁 Directory Summary
+- `/Prakriti-Apis`: Main REST API server.
+- `/Prakriti-App`: Frontend mobile code.
+- `/Prakriti-Dashboard`: Frontend administration panel.
+- `/ai-backend`: AI-powered chat and vision servers.
+- `/greenPoints-local-Blockchain`: Core blockchain logic and CLI tools.
+- `/greenpoints-local`: Local storage and upload assets.
+
+---
+**Codeforge Team H** | *Advancing Sustainability through Technology* 🌍

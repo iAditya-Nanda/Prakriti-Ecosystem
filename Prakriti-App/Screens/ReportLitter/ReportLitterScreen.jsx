@@ -13,8 +13,8 @@ import * as Location from "expo-location";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import MapView, { Marker } from "react-native-maps";
 
-const SERVER = "http://100.116.141.56:8000";
-const SERVER_CHECK = "http://100.111.185.121:8080";
+const SERVER = "http://192.168.31.3:8000";
+const SERVER_CHECK = "http://192.168.31.3:8080";
 const DETECT_URL = `${SERVER}/detect_litter`;
 
 const ReportLitterScreen = ({ navigation }) => {

@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_URL = "http://100.111.185.121:8080/api/v1/auth/login";
+const API_URL = "http://192.168.31.3:8080/api/v1/auth/login";
 
 const Login = ({ navigation }) => {
   const [role, setRole] = useState("user");

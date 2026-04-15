@@ -14,7 +14,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import Svg, { Circle, Path } from "react-native-svg";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
-const SERVER_IP = "http://100.111.185.121:8080";
+const SERVER_IP = "http://192.168.31.3:8080";
 
 const generatePath = (data, w, h) => {
   if (!data || data.length === 0) return "";

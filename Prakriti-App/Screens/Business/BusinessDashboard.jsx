@@ -5,7 +5,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-const SERVER_IP = "http://100.111.185.121:8080";
+const SERVER_IP = "http://192.168.31.3:8080";
 
 const BusinessDashboard = ({ navigation }) => {
   const insets = useSafeAreaInsets();

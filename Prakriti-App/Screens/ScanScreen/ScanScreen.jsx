@@ -11,7 +11,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
-const SERVER = "http://100.111.185.121:8080";
+const SERVER = "http://192.168.31.3:8080";
 
 const ScanScreen = ({ navigation }) => {
   const [permission, requestPermission] = useCameraPermissions();

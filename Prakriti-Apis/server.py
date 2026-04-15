@@ -11,8 +11,11 @@ from routes.qr_routes import qr_bp
 from routes.verifier_routes import verifier_bp
 from routes.tourist_submission_routes import submissions_bp
 
+print("🚀 Initializing Prakriti Server...")
 app = Flask(__name__)
+print("✅ Flask app created.")
 CORS(app)
+print("✅ CORS initialized.")
 
 # Register routes
 app.register_blueprint(auth_bp, url_prefix="/api/v1/auth")

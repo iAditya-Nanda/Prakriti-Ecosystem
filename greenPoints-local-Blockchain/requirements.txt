@@ -6,8 +6,8 @@
 # - hashlib, json, time, typing, sqlite3
 
 # Flask API Server (for frontend integration)
-flask==2.3.0
-flask-cors==4.0.0
+flask>=3.0.0
+flask-cors>=4.0.0
 
 # Testing
 requests==2.31.0

@@ -20,8 +20,15 @@ connection_string = (
 )
 
 # Encode for SQLAlchemy
-params = urllib.parse.quote_plus(connection_string)
-DATABASE_URL = f"mssql+pyodbc:///?odbc_connect={params}"
+try:
+    params = urllib.parse.quote_plus(connection_string)
+    DATABASE_URL = f"mssql+pyodbc:///?odbc_connect={params}"
+    # Test connection briefly
+    test_engine = create_engine(DATABASE_URL)
+    test_engine.connect().close()
+except Exception:
+    print("⚠️ SQL Server unavailable. Falling back to local SQLite (prakriti_local.db)")
+    DATABASE_URL = "sqlite:///./prakriti_local.db"
 
 # -------------------------------------------
 # ✅ SQLAlchemy Engine and Session Setup

@@ -11,7 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const SERVER_IP = "http://100.111.185.121:8080";
+const SERVER_IP = "http://192.168.31.3:8080";
 
 const ACTION_TYPES = [
   { label: "Waste Disposal", key: "waste", icon: "delete-sweep-outline" },
