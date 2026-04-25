@@ -213,18 +213,18 @@ class QRCodeManager:
     
     def get_business_qr_codes(self, business_id: int, include_used: bool = False) -> List[Dict]:
         """Get all QR codes for a business"""
-        cursor = self.db.conn.cursor()
+        cursor = self.db._dict_cursor()
         
         if include_used:
             cursor.execute("""
-                SELECT * FROM qr_codes 
-                WHERE business_id = ? 
+                SELECT * FROM bc_qr_codes 
+                WHERE business_id = %s 
                 ORDER BY created_at DESC
             """, (business_id,))
         else:
             cursor.execute("""
-                SELECT * FROM qr_codes 
-                WHERE business_id = ? AND is_used = 0
+                SELECT * FROM bc_qr_codes 
+                WHERE business_id = %s AND is_used = 0
                 ORDER BY created_at DESC
             """, (business_id,))
         
@@ -232,16 +232,16 @@ class QRCodeManager:
     
     def get_qr_code_stats(self, business_id: int) -> Dict:
         """Get QR code statistics for a business"""
-        cursor = self.db.conn.cursor()
+        cursor = self.db._dict_cursor()
         
         cursor.execute("""
             SELECT 
                 COUNT(*) as total_generated,
                 SUM(CASE WHEN is_used = 1 THEN 1 ELSE 0 END) as redeemed,
-                SUM(CASE WHEN is_used = 0 AND (expires_at IS NULL OR expires_at > ?) THEN 1 ELSE 0 END) as active,
+                SUM(CASE WHEN is_used = 0 AND (expires_at IS NULL OR expires_at > %s) THEN 1 ELSE 0 END) as active,
                 SUM(CASE WHEN is_used = 1 THEN reward_amount ELSE 0 END) as total_gp_distributed
-            FROM qr_codes
-            WHERE business_id = ?
+            FROM bc_qr_codes
+            WHERE business_id = %s
         """, (time.time(), business_id))
         
         return dict(cursor.fetchone())

@@ -237,18 +237,18 @@ class GreenPointsAPI:
     
     def get_user_submissions(self, user_id: int, status: Optional[str] = None) -> Dict:
         """Get user's task submissions"""
-        cursor = self.db.conn.cursor()
+        cursor = self.db._dict_cursor()
         
         if status:
             cursor.execute("""
-                SELECT * FROM pending_verifications
-                WHERE user_id = ? AND status = ?
+                SELECT * FROM bc_pending_verifications
+                WHERE user_id = %s AND status = %s
                 ORDER BY submitted_at DESC
             """, (user_id, status))
         else:
             cursor.execute("""
-                SELECT * FROM pending_verifications
-                WHERE user_id = ?
+                SELECT * FROM bc_pending_verifications
+                WHERE user_id = %s
                 ORDER BY submitted_at DESC
             """, (user_id,))
         
@@ -436,11 +436,11 @@ class GreenPointsAPI:
         total_users = len(self.db.get_all_users(role='user'))
         total_businesses = len(self.db.get_all_users(role='business'))
         
-        cursor = self.db.conn.cursor()
-        cursor.execute("SELECT COUNT(*) as count FROM pending_verifications WHERE status = 'pending'")
+        cursor = self.db._dict_cursor()
+        cursor.execute("SELECT COUNT(*) as count FROM bc_pending_verifications WHERE status = 'pending'")
         pending_verifications = cursor.fetchone()['count']
         
-        cursor.execute("SELECT COUNT(*) as count FROM qr_codes WHERE is_used = 0")
+        cursor.execute("SELECT COUNT(*) as count FROM bc_qr_codes WHERE is_used = 0")
         active_qr_codes = cursor.fetchone()['count']
         
         # Calculate total GP in circulation

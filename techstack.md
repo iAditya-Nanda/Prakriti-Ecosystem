@@ -3,7 +3,7 @@
 ## 🔙 Backend & Core
 - **Primary Language**: Python 3.10+
 - **API Framework**: Flask (RESTful)
-- **Database**: Microsoft SQL Server (MSSQL)
+- **Database**: PostgreSQL 14+
 - **ORM**: SQLAlchemy
 - **Authentication**: JWT (PyJWT)
 - **CORS Handling**: Flask-CORS

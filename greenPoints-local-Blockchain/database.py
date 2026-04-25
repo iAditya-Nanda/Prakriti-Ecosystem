@@ -1,14 +1,19 @@
 """
 Database Schema and Integration for Green Points Blockchain
-SQLite database for user management synced with blockchain
+PostgreSQL database for user management synced with blockchain
 Only USER and BUSINESS roles - Users earn GP, Businesses issue rewards
 """
 
-import sqlite3
+import os
 import json
 import time
+import psycopg2
+import psycopg2.extras
 from typing import Optional, Dict, List, Tuple
 from enum import Enum
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class UserRole(Enum):
@@ -18,29 +23,56 @@ class UserRole(Enum):
 
 
 class Database:
-    """Handles all database operations"""
+    """Handles all database operations using PostgreSQL"""
     
-    def __init__(self, db_path: str = "greenpoints.db"):
-        self.db_path = db_path
+    def __init__(self, db_name: str = None):
+        """
+        Initialize database connection.
+        db_name parameter is kept for backward compatibility but ignored
+        when DATABASE_URL or individual POSTGRES_* env vars are set.
+        """
         self.conn = None
         self.initialize_database()
     
+    def _get_connection_params(self) -> dict:
+        """Build PostgreSQL connection parameters from environment variables"""
+        database_url = os.getenv("DATABASE_URL")
+        if database_url:
+            # Handle SQLAlchemy-style URLs
+            if database_url.startswith("postgresql+psycopg2://"):
+                database_url = database_url.replace("postgresql+psycopg2://", "postgresql://")
+            return {"dsn": database_url}
+        
+        return {
+            "host": os.getenv("POSTGRES_HOST", "localhost"),
+            "port": int(os.getenv("POSTGRES_PORT", "5432")),
+            "dbname": os.getenv("POSTGRES_DB", "prakriti"),
+            "user": os.getenv("POSTGRES_USER", "postgres"),
+            "password": os.getenv("POSTGRES_PASSWORD", "postgres"),
+        }
+
     def initialize_database(self):
         """Create database tables if they don't exist"""
-        self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
-        self.conn.row_factory = sqlite3.Row  # Return rows as dictionaries
+        params = self._get_connection_params()
+        
+        if "dsn" in params:
+            self.conn = psycopg2.connect(params["dsn"])
+        else:
+            self.conn = psycopg2.connect(**params)
+        
+        self.conn.autocommit = False
         cursor = self.conn.cursor()
         
         # Users table - synced with blockchain wallets
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+            CREATE TABLE IF NOT EXISTS bc_users (
+                id SERIAL PRIMARY KEY,
                 name TEXT NOT NULL,
                 email TEXT UNIQUE,
                 phone TEXT UNIQUE,
                 role TEXT NOT NULL CHECK(role IN ('user', 'business')),
                 wallet_address TEXT UNIQUE NOT NULL,
-                created_at REAL NOT NULL,
+                created_at DOUBLE PRECISION NOT NULL,
                 is_active INTEGER DEFAULT 1,
                 metadata TEXT DEFAULT '{}',
                 CONSTRAINT contact_required CHECK (email IS NOT NULL OR phone IS NOT NULL)
@@ -49,63 +81,67 @@ class Database:
         
         # QR Codes table (for business rewards)
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS qr_codes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+            CREATE TABLE IF NOT EXISTS bc_qr_codes (
+                id SERIAL PRIMARY KEY,
                 qr_code TEXT UNIQUE NOT NULL,
                 business_id INTEGER NOT NULL,
                 business_name TEXT NOT NULL,
-                reward_amount REAL NOT NULL,
+                reward_amount DOUBLE PRECISION NOT NULL,
                 service_description TEXT,
-                created_at REAL NOT NULL,
-                expires_at REAL,
+                created_at DOUBLE PRECISION NOT NULL,
+                expires_at DOUBLE PRECISION,
                 is_used INTEGER DEFAULT 0,
                 used_by INTEGER,
-                used_at REAL,
+                used_at DOUBLE PRECISION,
                 transaction_id TEXT,
                 metadata TEXT DEFAULT '{}',
-                FOREIGN KEY (business_id) REFERENCES users(id),
-                FOREIGN KEY (used_by) REFERENCES users(id)
+                FOREIGN KEY (business_id) REFERENCES bc_users(id),
+                FOREIGN KEY (used_by) REFERENCES bc_users(id)
             )
         """)
         
         # Task completions pending verification
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS pending_verifications (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+            CREATE TABLE IF NOT EXISTS bc_pending_verifications (
+                id SERIAL PRIMARY KEY,
                 user_id INTEGER NOT NULL,
                 task_type TEXT NOT NULL,
                 evidence TEXT,
                 image_path TEXT,
                 location TEXT,
-                latitude REAL,
-                longitude REAL,
-                submitted_at REAL NOT NULL,
-                verified_at REAL,
+                latitude DOUBLE PRECISION,
+                longitude DOUBLE PRECISION,
+                submitted_at DOUBLE PRECISION NOT NULL,
+                verified_at DOUBLE PRECISION,
                 verified_by TEXT,
                 status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected')),
                 rejection_reason TEXT,
-                reward_amount REAL,
+                reward_amount DOUBLE PRECISION,
                 transaction_id TEXT,
                 metadata TEXT DEFAULT '{}',
-                FOREIGN KEY (user_id) REFERENCES users(id)
+                FOREIGN KEY (user_id) REFERENCES bc_users(id)
             )
         """)
         
         # Leaderboard cache (for performance)
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS leaderboard_cache (
+            CREATE TABLE IF NOT EXISTS bc_leaderboard_cache (
                 user_id INTEGER PRIMARY KEY,
                 name TEXT NOT NULL,
-                total_gp REAL NOT NULL,
+                total_gp DOUBLE PRECISION NOT NULL,
                 tasks_completed INTEGER NOT NULL,
                 rank INTEGER,
-                last_updated REAL NOT NULL,
-                FOREIGN KEY (user_id) REFERENCES users(id)
+                last_updated DOUBLE PRECISION NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES bc_users(id)
             )
         """)
         
         self.conn.commit()
-        print("✓ Database initialized successfully")
+        print("✓ Blockchain database (PostgreSQL) initialized successfully")
+    
+    def _dict_cursor(self):
+        """Return a cursor that returns rows as dictionaries"""
+        return self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     
     def create_user(self, name: str, email: Optional[str], phone: Optional[str], 
                    role: str, wallet_address: str) -> Optional[int]:
@@ -133,54 +169,56 @@ class Database:
         cursor = self.conn.cursor()
         try:
             cursor.execute("""
-                INSERT INTO users (name, email, phone, role, wallet_address, created_at)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO bc_users (name, email, phone, role, wallet_address, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                RETURNING id
             """, (name, email, phone, role, wallet_address, time.time()))
             
+            user_id = cursor.fetchone()[0]
             self.conn.commit()
-            user_id = cursor.lastrowid
             print(f"✓ User created: {name} (ID: {user_id}, Role: {role})")
             return user_id
         
-        except sqlite3.IntegrityError as e:
+        except psycopg2.IntegrityError as e:
+            self.conn.rollback()
             print(f"Error creating user: {e}")
             return None
     
     def get_user_by_id(self, user_id: int) -> Optional[Dict]:
         """Get user by ID"""
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+        cursor = self._dict_cursor()
+        cursor.execute("SELECT * FROM bc_users WHERE id = %s", (user_id,))
         row = cursor.fetchone()
         return dict(row) if row else None
     
     def get_user_by_email(self, email: str) -> Optional[Dict]:
         """Get user by email"""
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+        cursor = self._dict_cursor()
+        cursor.execute("SELECT * FROM bc_users WHERE email = %s", (email,))
         row = cursor.fetchone()
         return dict(row) if row else None
     
     def get_user_by_phone(self, phone: str) -> Optional[Dict]:
         """Get user by phone"""
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM users WHERE phone = ?", (phone,))
+        cursor = self._dict_cursor()
+        cursor.execute("SELECT * FROM bc_users WHERE phone = %s", (phone,))
         row = cursor.fetchone()
         return dict(row) if row else None
     
     def get_user_by_wallet(self, wallet_address: str) -> Optional[Dict]:
         """Get user by wallet address"""
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM users WHERE wallet_address = ?", (wallet_address,))
+        cursor = self._dict_cursor()
+        cursor.execute("SELECT * FROM bc_users WHERE wallet_address = %s", (wallet_address,))
         row = cursor.fetchone()
         return dict(row) if row else None
     
     def get_all_users(self, role: Optional[str] = None) -> List[Dict]:
         """Get all users, optionally filtered by role"""
-        cursor = self.conn.cursor()
+        cursor = self._dict_cursor()
         if role:
-            cursor.execute("SELECT * FROM users WHERE role = ? AND is_active = 1 ORDER BY created_at DESC", (role,))
+            cursor.execute("SELECT * FROM bc_users WHERE role = %s AND is_active = 1 ORDER BY created_at DESC", (role,))
         else:
-            cursor.execute("SELECT * FROM users WHERE is_active = 1 ORDER BY created_at DESC")
+            cursor.execute("SELECT * FROM bc_users WHERE is_active = 1 ORDER BY created_at DESC")
         return [dict(row) for row in cursor.fetchall()]
     
     def create_qr_code(self, business_id: int, reward_amount: float, 
@@ -201,23 +239,26 @@ class Database:
         
         try:
             cursor.execute("""
-                INSERT INTO qr_codes (qr_code, business_id, business_name, reward_amount, 
+                INSERT INTO bc_qr_codes (qr_code, business_id, business_name, reward_amount, 
                                      service_description, created_at, expires_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
             """, (qr_code, business_id, business['name'], reward_amount, 
                   service_description, time.time(), expires_at))
             
+            qr_id = cursor.fetchone()[0]
             self.conn.commit()
-            return cursor.lastrowid
+            return qr_id
         
-        except sqlite3.IntegrityError:
+        except psycopg2.IntegrityError:
+            self.conn.rollback()
             print("Error: QR code already exists")
             return None
     
     def get_qr_code(self, qr_code: str) -> Optional[Dict]:
         """Get QR code details"""
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM qr_codes WHERE qr_code = ?", (qr_code,))
+        cursor = self._dict_cursor()
+        cursor.execute("SELECT * FROM bc_qr_codes WHERE qr_code = %s", (qr_code,))
         row = cursor.fetchone()
         return dict(row) if row else None
     
@@ -245,9 +286,9 @@ class Database:
         """Mark QR code as used"""
         cursor = self.conn.cursor()
         cursor.execute("""
-            UPDATE qr_codes 
-            SET is_used = 1, used_by = ?, used_at = ?, transaction_id = ?
-            WHERE qr_code = ? AND is_used = 0
+            UPDATE bc_qr_codes 
+            SET is_used = 1, used_by = %s, used_at = %s, transaction_id = %s
+            WHERE qr_code = %s AND is_used = 0
         """, (user_id, time.time(), transaction_id, qr_code))
         
         self.conn.commit()
@@ -265,25 +306,26 @@ class Database:
         metadata_json = json.dumps(metadata or {})
         
         cursor.execute("""
-            INSERT INTO pending_verifications 
+            INSERT INTO bc_pending_verifications 
             (user_id, task_type, evidence, image_path, location, latitude, longitude,
              submitted_at, reward_amount, metadata, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pending')
+            RETURNING id
         """, (user_id, task_type, evidence, image_path, location, latitude, longitude,
               time.time(), reward_amount, metadata_json))
         
+        verification_id = cursor.fetchone()[0]
         self.conn.commit()
-        verification_id = cursor.lastrowid
         print(f"✓ Verification submitted (ID: {verification_id})")
         return verification_id
     
     def get_pending_verifications(self) -> List[Dict]:
         """Get all pending verifications"""
-        cursor = self.conn.cursor()
+        cursor = self._dict_cursor()
         cursor.execute("""
             SELECT v.*, u.name as user_name, u.email as user_email, u.phone as user_phone
-            FROM pending_verifications v
-            JOIN users u ON v.user_id = u.id
+            FROM bc_pending_verifications v
+            JOIN bc_users u ON v.user_id = u.id
             WHERE v.status = 'pending'
             ORDER BY v.submitted_at ASC
         """)
@@ -291,12 +333,12 @@ class Database:
     
     def get_verification_by_id(self, verification_id: int) -> Optional[Dict]:
         """Get verification by ID"""
-        cursor = self.conn.cursor()
+        cursor = self._dict_cursor()
         cursor.execute("""
             SELECT v.*, u.name as user_name, u.email as user_email
-            FROM pending_verifications v
-            JOIN users u ON v.user_id = u.id
-            WHERE v.id = ?
+            FROM bc_pending_verifications v
+            JOIN bc_users u ON v.user_id = u.id
+            WHERE v.id = %s
         """, (verification_id,))
         row = cursor.fetchone()
         return dict(row) if row else None
@@ -306,9 +348,9 @@ class Database:
         """Approve a verification request"""
         cursor = self.conn.cursor()
         cursor.execute("""
-            UPDATE pending_verifications
-            SET status = 'approved', verified_at = ?, verified_by = ?, transaction_id = ?
-            WHERE id = ? AND status = 'pending'
+            UPDATE bc_pending_verifications
+            SET status = 'approved', verified_at = %s, verified_by = %s, transaction_id = %s
+            WHERE id = %s AND status = 'pending'
         """, (time.time(), verified_by, transaction_id, verification_id))
         
         self.conn.commit()
@@ -319,9 +361,9 @@ class Database:
         """Reject a verification request"""
         cursor = self.conn.cursor()
         cursor.execute("""
-            UPDATE pending_verifications
-            SET status = 'rejected', verified_at = ?, verified_by = ?, rejection_reason = ?
-            WHERE id = ? AND status = 'pending'
+            UPDATE bc_pending_verifications
+            SET status = 'rejected', verified_at = %s, verified_by = %s, rejection_reason = %s
+            WHERE id = %s AND status = 'pending'
         """, (time.time(), verified_by, reason, verification_id))
         
         self.conn.commit()
@@ -332,24 +374,29 @@ class Database:
         """Update leaderboard cache for a user"""
         cursor = self.conn.cursor()
         cursor.execute("""
-            INSERT OR REPLACE INTO leaderboard_cache 
+            INSERT INTO bc_leaderboard_cache 
             (user_id, name, total_gp, tasks_completed, last_updated)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT (user_id) DO UPDATE SET
+                name = EXCLUDED.name,
+                total_gp = EXCLUDED.total_gp,
+                tasks_completed = EXCLUDED.tasks_completed,
+                last_updated = EXCLUDED.last_updated
         """, (user_id, name, total_gp, tasks_completed, time.time()))
         
         self.conn.commit()
     
     def get_leaderboard(self, limit: int = 10) -> List[Dict]:
         """Get leaderboard data"""
-        cursor = self.conn.cursor()
+        cursor = self._dict_cursor()
         cursor.execute("""
             SELECT 
                 ROW_NUMBER() OVER (ORDER BY total_gp DESC) as rank,
                 user_id, name, total_gp, tasks_completed
-            FROM leaderboard_cache
+            FROM bc_leaderboard_cache
             WHERE total_gp > 0
             ORDER BY total_gp DESC
-            LIMIT ?
+            LIMIT %s
         """, (limit,))
         
         return [dict(row) for row in cursor.fetchall()]
@@ -361,17 +408,17 @@ class Database:
         for user in users:
             balance = blockchain.get_balance(user['wallet_address'])
             # Count approved verifications as tasks completed
-            cursor = self.conn.cursor()
+            cursor = self._dict_cursor()
             cursor.execute("""
-                SELECT COUNT(*) as count FROM pending_verifications
-                WHERE user_id = ? AND status = 'approved'
+                SELECT COUNT(*) as count FROM bc_pending_verifications
+                WHERE user_id = %s AND status = 'approved'
             """, (user['id'],))
             tasks_completed = cursor.fetchone()['count']
             
             # Add QR code redemptions
             cursor.execute("""
-                SELECT COUNT(*) as count FROM qr_codes
-                WHERE used_by = ?
+                SELECT COUNT(*) as count FROM bc_qr_codes
+                WHERE used_by = %s
             """, (user['id'],))
             tasks_completed += cursor.fetchone()['count']
             
@@ -381,7 +428,7 @@ class Database:
     
     def get_user_stats(self, user_id: int) -> Dict:
         """Get statistics for a user"""
-        cursor = self.conn.cursor()
+        cursor = self._dict_cursor()
         
         # Get verification stats
         cursor.execute("""
@@ -390,8 +437,8 @@ class Database:
                 SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
                 SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected,
                 SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending
-            FROM pending_verifications
-            WHERE user_id = ?
+            FROM bc_pending_verifications
+            WHERE user_id = %s
         """, (user_id,))
         
         stats = dict(cursor.fetchone())
@@ -399,8 +446,8 @@ class Database:
         # Get QR code usage
         cursor.execute("""
             SELECT COUNT(*) as qr_codes_scanned
-            FROM qr_codes
-            WHERE used_by = ?
+            FROM bc_qr_codes
+            WHERE used_by = %s
         """, (user_id,))
         
         stats.update(dict(cursor.fetchone()))
@@ -413,8 +460,8 @@ class Database:
                     COUNT(*) as qr_codes_generated,
                     SUM(CASE WHEN is_used = 1 THEN 1 ELSE 0 END) as qr_codes_redeemed,
                     SUM(CASE WHEN is_used = 1 THEN reward_amount ELSE 0 END) as total_gp_distributed
-                FROM qr_codes
-                WHERE business_id = ?
+                FROM bc_qr_codes
+                WHERE business_id = %s
             """, (user_id,))
             stats.update(dict(cursor.fetchone()))
         

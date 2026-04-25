@@ -12,7 +12,7 @@ graph TD
 
     subgraph "Coordination Layer (Flask API)"
         API["Central API Server"]
-        DB[(MSSQL Database)]
+        DB[(PostgreSQL Database)]
     end
 
     subgraph "Intelligence Layer (Edge AI)"
@@ -45,7 +45,7 @@ graph TD
 ### Coordination Layer (Prakriti-Apis)
 The Flask-based central hub acts as the **Gateway**.
 - **Role**: Validates requests, manages state, and orchestrates calls between the AI, Database, and Blockchain.
-- **Persistence**: Uses **SQLAlchemy** to interface with **Microsoft SQL Server**.
+- **Persistence**: Uses **SQLAlchemy** to interface with **PostgreSQL**.
 - **Modules**: Auth, History, Business, QR Validation, and Task Submission.
 
 ### Intelligence Layer (ai-backend)
@@ -82,14 +82,14 @@ A custom-built blockchain ensuring that GP rewards are decentralised and immutab
 | **Authentication** | JWT (JSON Web Tokens) | Secure session management between Mobile/API. |
 | **Integrity** | SHA-256 Hashing | Ensures blockchain blocks cannot be modified. |
 | **Validation** | Proof-of-Work | Prevents spamming blocks/mining rewards. |
-| **Storage** | MSSQL | Secure relational storage for PII (Personally Identifiable Information). |
+| **Storage** | PostgreSQL | Secure relational storage for PII (Personally Identifiable Information). |
 | **Inference** | Local Model Hosting | Keeps user data (images/chat) within the local ecosystem (no third-party AI APIs). |
 
 ---
 
 ## 5. Technology Stack Summary (Detailed)
 - **Backend Service**: Flask (Python 3.10+)
-- **Database Architecture**: Relational (MSSQL) + Decentralized (Custom Blockchain)
+- **Database Architecture**: Relational (PostgreSQL) + Decentralized (Custom Blockchain)
 - **Frontend Core**: React Native (Expo) & React (Vite)
 - **Styles**: Tailwind CSS / Vanilla CSS / Lucide Icons
 - **AI Core**: Ollama (prakriti-vision / prakriti-chat)

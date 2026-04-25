@@ -10,10 +10,10 @@ Before starting the services, ensure you have the following installed:
 
 1.  **Python 3.10+**: For Blockchain, AI Backend, and Central API.
 2.  **Node.js & npm**: For the Mobile App (Expo) and Web Dashboard (Vite).
-3.  **Microsoft SQL Server**: With a database named `Prakriti`.
+3.  **PostgreSQL 14+**: With a database named `prakriti`.
 4.  **Ollama**: For local AI model execution.
     -   Models needed: `prakriti-vision:latest`, `prakriti-chat:latest`.
-5.  **ODBC Driver 17 for SQL Server**: Required for Python database connectivity.
+5.  **psycopg2-binary**: Required for Python database connectivity (installed via pip).
 
 ---
 
@@ -34,7 +34,12 @@ graph TD
 ## 🛠️ Detailed Startup Steps
 
 ### 1. External Dependencies
--   **SQL Server**: Ensure the service is running and the `Prakriti` database is accessible.
+-   **PostgreSQL**: Ensure PostgreSQL is running and create the database:
+    ```bash
+    # Create the prakriti database
+    sudo -u postgres psql -c "CREATE DATABASE prakriti;"
+    ```
+-   **Configure .env**: Update `Prakriti-Apis/.env` and `greenPoints-local-Blockchain/.env` with your PostgreSQL credentials.
 -   **Ollama Models**:
     ```bash
     ollama run prakriti-chat
@@ -97,7 +102,7 @@ npx expo start
 - [ ] **Verify Blockchain**: Visit `http://localhost:5000/api/stats` to check status.
 - [ ] **Verify Central API**: Visit `http://localhost:8080/` (Should see "Prakriti API is running 🚀").
 - [ ] **Verify AI Health**: Check `http://localhost:8000/health` and `http://localhost:8001/health`.
-- [ ] **Database Connection**: Ensure `Prakriti-Apis/db.py` can connect to your local SQL instance.
+- [ ] **Database Connection**: Ensure `.env` files have correct PostgreSQL credentials and run `python3 db.py` to test.
 
 ---
 

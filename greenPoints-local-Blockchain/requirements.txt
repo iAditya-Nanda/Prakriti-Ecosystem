@@ -3,7 +3,13 @@
 
 # Core blockchain (no dependencies needed)
 # All blockchain functionality uses Python standard library:
-# - hashlib, json, time, typing, sqlite3
+# - hashlib, json, time, typing
+
+# PostgreSQL database driver
+psycopg2-binary>=2.9.0
+
+# Environment variable loading
+python-dotenv>=1.0.0
 
 # Flask API Server (for frontend integration)
 flask>=3.0.0

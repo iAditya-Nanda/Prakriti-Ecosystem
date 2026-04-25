@@ -37,7 +37,7 @@ def get_business_profile(business_id: int):
                 }
             }), 200
 
-        biz = db.query(Business).get(business_id)
+        biz = db.get(Business, business_id)
         if not biz:
             return jsonify({"error": "business not found"}), 404
 
@@ -68,7 +68,7 @@ def upsert_business(data: dict):
     try:
         biz = None
         if "id" in data and data["id"]:
-            biz = db.query(Business).get(int(data["id"]))
+            biz = db.get(Business, int(data["id"]))
 
         if not biz:
             biz = Business()

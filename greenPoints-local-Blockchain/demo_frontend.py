@@ -30,7 +30,7 @@ def main():
     # Initialize system
     print_header("INITIALIZING SYSTEM")
     blockchain = Blockchain(difficulty=2)
-    db = Database("greenpoints_demo.db")
+    db = Database()
     api = GreenPointsAPI(blockchain, db)
     print("✓ Blockchain initialized")
     print("✓ Database initialized")

@@ -32,7 +32,7 @@ def get_verifier_dashboard(verifier_id: int):
                 "pendingCount": 12
             }), 200
 
-        verifier = db.query(Verifier).get(verifier_id)
+        verifier = db.get(Verifier, verifier_id)
         if not verifier:
             return jsonify({"error": "Verifier not found"}), 404
 
@@ -62,7 +62,7 @@ def upsert_verifier(data):
         verifier_id = int(data["id"])
 
         # Try to get existing verifier
-        verifier = db.query(Verifier).get(verifier_id)
+        verifier = db.get(Verifier, verifier_id)
 
         if verifier:
             # Update existing record

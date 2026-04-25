@@ -9,7 +9,7 @@
 | Component | Technology | Primary Role |
 | :--- | :--- | :--- |
 | **Backend API** | Python, Flask, SQLAlchemy | Central orchestrator & data management |
-| **Database** | Microsoft SQL Server (MSSQL) | Persistent storage for users and metadata |
+| **Database** | PostgreSQL | Persistent storage for users and metadata |
 | **Blockchain** | Custom Python implementation | Decentralized GP ledger (PoW) |
 | **AI Services** | Ollama, Flask | Waste vision & sustainable chat |
 | **Mobile App** | React Native, Expo | User interaction & task logging |
@@ -76,7 +76,7 @@ A premium visualization tool for state environmental departments.
 ## 📂 Logical Directory Structure
 ```bash
 /
-├── Prakriti-Apis/          # Flask REST API & MSSQL Models
+├── Prakriti-Apis/          # Flask REST API & PostgreSQL Models
 ├── Prakriti-App/           # React Native Mobile Frontend
 ├── Prakriti-Dashboard/     # React Admin Dashboard
 ├── ai-backend/             # Vision & Chat AI Servers

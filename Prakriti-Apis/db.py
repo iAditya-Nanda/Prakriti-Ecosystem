@@ -1,39 +1,45 @@
-from sqlalchemy import create_engine
+import os
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, declarative_base
-import urllib
+from dotenv import load_dotenv
 
 # -------------------------------------------
-# ✅ SQL Server Connection (Windows Authentication)
+# ✅ Load environment variables
+# -------------------------------------------
+load_dotenv()
+
+# -------------------------------------------
+# 🐘 PostgreSQL Connection
 # -------------------------------------------
 
-# Your verified instance & database
-server = r"LENOVOT470-WIND\SQLEXPRESS"   # instance name from SSMS
-database = "Prakriti"                     # your database name
+# Check for full DATABASE_URL first (e.g., from Supabase or Railway)
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Build connection string for pyodbc
-connection_string = (
-    f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-    f"SERVER={server};"
-    f"DATABASE={database};"
-    "Trusted_Connection=yes;"
-    "TrustServerCertificate=yes;"
-)
+if not DATABASE_URL:
+    # Build from individual components
+    pg_host = os.getenv("POSTGRES_HOST", "localhost")
+    pg_port = os.getenv("POSTGRES_PORT", "5432")
+    pg_db = os.getenv("POSTGRES_DB", "prakriti")
+    pg_user = os.getenv("POSTGRES_USER", "postgres")
+    pg_pass = os.getenv("POSTGRES_PASSWORD", "postgres")
 
-# Encode for SQLAlchemy
-try:
-    params = urllib.parse.quote_plus(connection_string)
-    DATABASE_URL = f"mssql+pyodbc:///?odbc_connect={params}"
-    # Test connection briefly
-    test_engine = create_engine(DATABASE_URL)
-    test_engine.connect().close()
-except Exception:
-    print("⚠️ SQL Server unavailable. Falling back to local SQLite (prakriti_local.db)")
-    DATABASE_URL = "sqlite:///./prakriti_local.db"
+    DATABASE_URL = f"postgresql+psycopg2://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_db}"
 
 # -------------------------------------------
 # ✅ SQLAlchemy Engine and Session Setup
 # -------------------------------------------
-engine = create_engine(DATABASE_URL, echo=False, future=True)
+try:
+    engine = create_engine(DATABASE_URL, echo=False, future=True, pool_pre_ping=True)
+    # Quick connection test
+    with engine.connect() as conn:
+        conn.execute(text("SELECT 1"))
+    print("✅ Connected to PostgreSQL successfully!")
+except Exception as e:
+    print(f"❌ PostgreSQL connection failed: {e}")
+    print("⚠️  Please ensure PostgreSQL is running and the 'prakriti' database exists.")
+    print("   To create it: psql -U postgres -c 'CREATE DATABASE prakriti;'")
+    raise SystemExit(1)
+
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 Base = declarative_base()
 
@@ -41,15 +47,17 @@ Base = declarative_base()
 # ✅ Optional: quick test when run directly
 # -------------------------------------------
 if __name__ == "__main__":
-    import pyodbc
     try:
-        conn = pyodbc.connect(connection_string)
-        print("Connected successfully to SQL Server!")
-        cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sys.databases;")
-        print("Databases on this server:")
-        for row in cursor.fetchall():
-            print("   →", row[0])
-        conn.close()
+        with engine.connect() as conn:
+            result = conn.execute(text("SELECT version();"))
+            version = result.scalar()
+            print(f"PostgreSQL Version: {version}")
+
+            result = conn.execute(text(
+                "SELECT datname FROM pg_database WHERE datistemplate = false;"
+            ))
+            print("Databases on this server:")
+            for row in result:
+                print(f"   → {row[0]}")
     except Exception as e:
         print("Connection failed:", e)

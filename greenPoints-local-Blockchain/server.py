@@ -15,7 +15,7 @@ CORS(app)  # Allow requests from your frontend (React Native/React/etc.)
 
 # Initialize blockchain system
 blockchain = Blockchain(difficulty=2)
-db = Database("greenpoints.db")
+db = Database()
 api = GreenPointsAPI(blockchain, db)
 
 # Configuration

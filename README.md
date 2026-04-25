@@ -48,7 +48,7 @@ Codeforge-teamH/
 ## 🏗️ The "Good Parts" (Technical Abstract)
 - **Local Blockchain (No Gas Fees)**: Unlike Ethereum or Solana, Prakriti uses a custom PoW blockchain designed to run on local servers, making it zero-cost for the user and highly performant for regional scale.
 - **Edge AI**: All AI processing (Vision/Chat) is designed to run via local LLM engines (Ollama), ensuring data privacy and reducing dependency on expensive Cloud APIs.
-- **MSSQL & SQLAlchemy**: A robust enterprise-grade database backend ensures that even with the decentralized rewards, user metadata and business registries remain performant and searchable.
+- **PostgreSQL & psycopg2**: A robust open-source database backend ensures that even with the decentralized rewards, user metadata and business registries remain performant and searchable.
 
 ---
 
@@ -63,7 +63,7 @@ Codeforge-teamH/
 ## 💻 Tech Stack
 - **Languages**: Python (Backend/AI/Blockchain), JavaScript (Mobile/Dashboard).
 - **Frameworks**: Flask, React Native, React + Vite.
-- **Database**: Microsoft SQL Server.
+- **Database**: PostgreSQL.
 - **AI Engine**: Ollama (prakriti-vision, prakriti-chat).
 - **Animation/UI**: Lucide React, Framer Motion.
 

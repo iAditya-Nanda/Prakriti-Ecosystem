@@ -191,7 +191,7 @@ def review_submission(submission_id: int, data: dict):
 
     db = SessionLocal()
     try:
-        sub = db.query(TouristSubmission).get(submission_id)
+        sub = db.get(TouristSubmission, submission_id)
         if not sub:
             return jsonify({"error": "submission not found"}), 404
 

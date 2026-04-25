@@ -2,4 +2,6 @@ flask
 flask-cors
 uvicorn
 sqlalchemy
-pyodbc
+psycopg2-binary
+python-dotenv
+werkzeug
