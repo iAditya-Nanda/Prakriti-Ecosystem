@@ -3,7 +3,8 @@ FROM llava:13b
 PARAMETER temperature 0.0
 PARAMETER top_p 0.9
 PARAMETER repeat_penalty 1.05
-PARAMETER num_ctx 8192
+PARAMETER num_ctx 1024
+PARAMETER num_predict 300
 
 SYSTEM """
 You are Prakriti Vision AI.

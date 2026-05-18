@@ -45,6 +45,22 @@ def generate_qr():
         db.commit()
         db.refresh(new_qr)
 
+        # Sync QR with local Proof-of-Work Blockchain
+        try:
+            from controllers.auth_controller import User
+            biz_user = db.query(User).filter_by(id=data["business_id"]).first()
+            if biz_user:
+                import requests
+                blockchain_payload = {
+                    "contact": biz_user.contact,
+                    "reward_amount": 15.0,  # Standard reward amount for verified green actions
+                    "service_description": f"Green Action: {data['action']}",
+                    "custom_qr_code": qr_id
+                }
+                requests.post("http://localhost:5000/api/qr/generate", json=blockchain_payload, timeout=2.0)
+        except Exception as blockchain_err:
+            print(f"⚠️ Warning: Failed to sync generated QR on blockchain: {blockchain_err}")
+
         return jsonify({
             "message": "QR generated successfully",
             "qr": {
@@ -99,21 +115,68 @@ def mark_qr_scanned():
         if not qr:
             return jsonify({"error": "QR not found"}), 404
         if qr.is_scanned:
-            return jsonify({"message": "QR already scanned"}), 200
+            # Let's find business name for frontend
+            from controllers.auth_controller import User
+            biz_name = "Green Partner Location"
+            biz_user = db.query(User).filter_by(id=qr.business_id).first()
+            if biz_user:
+                biz_name = biz_user.name
+            return jsonify({
+                "message": "QR scan confirmed, points issued",
+                "qr_id": qr.qr_code,
+                "points_awarded": qr.points_awarded or 15,
+                "scanned_by_user": qr.scanned_by_user,
+                "scanned_at": str(qr.scanned_at) if qr.scanned_at else str(datetime.utcnow()),
+                "business_name": biz_name,
+                "action": qr.action
+            }), 200
 
+        # Look up user contact from PostgreSQL
+        from controllers.auth_controller import User
+        user = db.query(User).filter_by(id=data["user_id"]).first()
+        
         qr.is_scanned = True
         qr.scanned_by_user = data["user_id"]
-        qr.points_awarded = random.randint(1, 10)
+        
+        # Default points
+        points = random.randint(5, 15)
+        
+        # Try to scan on blockchain
+        blockchain_points = None
+        if user:
+            try:
+                import requests
+                blockchain_payload = {
+                    "contact": user.contact,
+                    "qr_code": qr.qr_code
+                }
+                blockchain_res = requests.post("http://localhost:5000/api/qr/scan", json=blockchain_payload, timeout=2.0)
+                res_data = blockchain_res.json()
+                if res_data.get("success"):
+                    # We can use the reward amount defined on the blockchain!
+                    blockchain_points = res_data.get("data", {}).get("amount", points)
+            except Exception as blockchain_err:
+                print(f"⚠️ Warning: Failed to scan QR on blockchain: {blockchain_err}")
+                
+        qr.points_awarded = blockchain_points or points
         qr.scanned_at = datetime.utcnow()
 
         db.commit()
+
+        # Let's find business name for frontend
+        biz_name = "Green Partner Location"
+        biz_user = db.query(User).filter_by(id=qr.business_id).first()
+        if biz_user:
+            biz_name = biz_user.name
 
         return jsonify({
             "message": "QR scan confirmed, points issued",
             "qr_id": qr.qr_code,
             "points_awarded": qr.points_awarded,
             "scanned_by_user": qr.scanned_by_user,
-            "scanned_at": str(qr.scanned_at)
+            "scanned_at": str(qr.scanned_at),
+            "business_name": biz_name,
+            "action": qr.action
         }), 200
     except Exception as e:
         db.rollback()

@@ -33,14 +33,15 @@ def sync_user():
     Called when user signs up in your existing app
     Creates blockchain wallet for the user
     
-    Request: { "name": "John Doe", "email": "john@example.com", "phone": "+1234567890" }
+    Request: { "name": "John Doe", "email": "john@example.com", "phone": "+1234567890", "role": "business" }
     Response: { "success": true, "data": { "user_id": 1, "wallet_address": "GP_abc..." } }
     """
     data = request.json
     response = api.register_user(
         name=data['name'],
         email=data.get('email'),
-        phone=data.get('phone')
+        phone=data.get('phone'),
+        role=data.get('role', 'user')
     )
     return jsonify(response)
 
@@ -169,11 +170,20 @@ def generate_qr():
     Response: { "success": true, "data": { "qr_code": "GP-0001-...", "reward_amount": 15 } }
     """
     data = request.json
+    business_id = data.get('business_id')
+    contact = data.get('contact')
+    
+    if contact:
+        resolved_biz = db.get_user_by_email(contact) or db.get_user_by_phone(contact)
+        if resolved_biz:
+            business_id = resolved_biz['id']
+            
     response = api.generate_qr_code(
-        business_id=data['business_id'],
+        business_id=business_id,
         reward_amount=data['reward_amount'],
         service_description=data.get('service_description', ''),
-        expires_in_hours=data.get('expires_in_hours')
+        expires_in_hours=data.get('expires_in_hours'),
+        custom_qr_code=data.get('custom_qr_code')
     )
     return jsonify(response)
 
@@ -182,21 +192,30 @@ def scan_qr():
     """
     User scans QR code to receive reward
     
-    Request: { "user_id": 1, "qr_code": "GP-0001-..." }
+    Request: { "user_id": 1, "qr_code": "GP-0001-..." } or { "contact": "user@email.com", "qr_code": "..." }
     Response: { "success": true, "data": { "amount": 15, "business_name": "Cafe" } }
     """
     data = request.json
+    user_id = data.get('user_id')
+    contact = data.get('contact')
+    
+    if contact:
+        resolved_user = db.get_user_by_email(contact) or db.get_user_by_phone(contact)
+        if resolved_user:
+            user_id = resolved_user['id']
+            
     response = api.scan_qr_code(
         qr_code=data['qr_code'],
-        user_id=data['user_id']
+        user_id=user_id
     )
     
     # After successful scan, mine the block to process reward immediately
     if response['success']:
         mine_result = api.mine_block("SYSTEM")
         if mine_result['success']:
-            response['data']['block_mined'] = True
-            response['data']['transaction_confirmed'] = True
+            if 'data' in response and response['data']:
+                response['data']['block_mined'] = True
+                response['data']['transaction_confirmed'] = True
     
     return jsonify(response)
 

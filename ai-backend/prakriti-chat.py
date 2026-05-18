@@ -33,7 +33,8 @@ while True:
     payload = {
         "model": MODEL_NAME,
         "prompt": prompt,
-        "stream": True
+        "stream": True,
+        "keep_alive": -1
     }
 
     print("🪷 Prakriti: ", end="", flush=True)

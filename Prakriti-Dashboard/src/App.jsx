@@ -84,7 +84,25 @@ function generateInsight({ weeklyActions, regions, totals }) {
 
 export default function PrakritiInsightDashboardPro() {
   const [dark, setDark] = useState(false);
-  const insight = useMemo(() => generateInsight(mock), []);
+  const [totals, setTotals] = useState(mock.totals);
+  const insight = useMemo(() => generateInsight({ ...mock, totals }), [totals]);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch("http://localhost:8080/api/v1/dashboard/stats");
+        const json = await res.json();
+        if (json.totals) {
+          setTotals(json.totals);
+        }
+      } catch (err) {
+        console.log("Failed to fetch live dashboard stats:", err);
+      }
+    };
+    fetchStats();
+    const interval = setInterval(fetchStats, 8000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem("prakriti_theme");
@@ -109,7 +127,7 @@ export default function PrakritiInsightDashboardPro() {
               </div>
               <div>
                 <h1 className="text-lg font-semibold tracking-tight">Prakriti Insight Dashboard</h1>
-                <p className="text-xs opacity-70">Read-only • As of {mock.asOf}</p>
+                <p className="text-xs opacity-70">Live Feed • As of {mock.asOf}</p>
               </div>
             </div>
 
@@ -126,11 +144,12 @@ export default function PrakritiInsightDashboardPro() {
         <main className="max-w-7xl mx-auto px-4 py-6 grid gap-6">
           {/* KPI STRIP */}
           <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            <KPI icon={Leaf} title="Verified Eco-Actions" value={nf(mock.totals.ecoActions)} grad={[COLORS.emerald, COLORS.teal]} />
-            <KPI icon={Users} title="Active Tourists" value={nf(mock.totals.activeTourists)} grad={[COLORS.teal, COLORS.emerald]} />
-            <KPI icon={Building2} title="Green-Stamped Businesses" value={nf(mock.totals.certifiedBusinesses)} grad={[COLORS.forest, COLORS.teal]} />
-            <KPI icon={CheckCircle2} title="Compliance Rate" value={`${mock.totals.complianceRate}%`} grad={[COLORS.yellow, COLORS.emerald]} />
+            <KPI icon={Leaf} title="Verified Eco-Actions" value={nf(totals.ecoActions)} grad={[COLORS.emerald, COLORS.teal]} />
+            <KPI icon={Users} title="Active Tourists" value={nf(totals.activeTourists)} grad={[COLORS.teal, COLORS.emerald]} />
+            <KPI icon={Building2} title="Green-Stamped Businesses" value={nf(totals.certifiedBusinesses)} grad={[COLORS.forest, COLORS.teal]} />
+            <KPI icon={CheckCircle2} title="Compliance Rate" value={`${totals.complianceRate}%`} grad={[COLORS.yellow, COLORS.emerald]} />
           </section>
+
 
           {/* TREND + BREAKDOWN */}
           <section className="grid lg:grid-cols-3 gap-6">

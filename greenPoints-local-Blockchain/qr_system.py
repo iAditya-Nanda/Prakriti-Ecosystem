@@ -72,7 +72,8 @@ class QRCodeManager:
     
     def create_qr_code(self, business_id: int, reward_amount: float,
                       service_description: str = "",
-                      expires_in_hours: Optional[int] = None) -> Tuple[bool, str, Optional[str]]:
+                      expires_in_hours: Optional[int] = None,
+                      custom_qr_code: Optional[str] = None) -> Tuple[bool, str, Optional[str]]:
         """
         Create a new QR code for a business
         
@@ -91,7 +92,7 @@ class QRCodeManager:
             return False, "Reward amount must be positive", None
         
         # Generate QR code
-        qr_code = QRCodeGenerator.generate_qr_code(
+        qr_code = custom_qr_code or QRCodeGenerator.generate_qr_code(
             business_id, reward_amount, service_description
         )
         

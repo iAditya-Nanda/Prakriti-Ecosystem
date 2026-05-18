@@ -13,6 +13,8 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+const SERVER = `${process.env.EXPO_PUBLIC_SERVER_IP || "http://192.168.31.3"}:8080`;
+
 const ProfileScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
 
@@ -32,6 +34,19 @@ const ProfileScreen = ({ navigation }) => {
       // Generate a pleasant organic tone background color for avatar
       const colors = ["#0E6E59", "#118A74", "#2E8B57", "#4E9A85", "#5C9E89", "#3F8A6B"];
       setAvatarColor(colors[Math.floor(Math.random() * colors.length)]);
+
+      // Fetch fresh live details from PostgreSQL & Blockchain
+      try {
+        const res = await fetch(`${SERVER}/api/v1/auth/profile/${parsed.id}`);
+        const json = await res.json();
+        if (json.success && json.user) {
+          const updatedUser = { ...parsed, ...json.user };
+          setUser(updatedUser);
+          await AsyncStorage.setItem("prakriti_user", JSON.stringify(updatedUser));
+        }
+      } catch (err) {
+        console.log("Failed to fetch fresh profile data:", err);
+      }
     }
   };
 
@@ -78,6 +93,11 @@ const ProfileScreen = ({ navigation }) => {
 
             <Text style={styles.name}>{user?.name || "Guest User"}</Text>
             <Text style={styles.email}>{user?.contact || "demo@prakriti.app"}</Text>
+            {user?.wallet_address && (
+              <Text style={{ fontSize: 11, color: "#8AA094", marginTop: 4, fontFamily: "monospace" }}>
+                Wallet: {user.wallet_address.substring(0, 10)}...{user.wallet_address.substring(user.wallet_address.length - 4)}
+              </Text>
+            )}
             
             <View style={styles.roleBadge}>
               <Text style={styles.roleBadgeText}>{(user?.role || "user").toUpperCase()}</Text>
@@ -86,7 +106,7 @@ const ProfileScreen = ({ navigation }) => {
             {/* Premium environmental impact stats */}
             <View style={styles.impactRow}>
               <View style={styles.impactItem}>
-                <Text style={styles.impactValue}>120</Text>
+                <Text style={styles.impactValue}>{user?.balance !== undefined ? user.balance : 0}</Text>
                 <Text style={styles.impactLabel}>Green Points</Text>
               </View>
 
@@ -94,7 +114,7 @@ const ProfileScreen = ({ navigation }) => {
               <View style={styles.divider} />
 
               <View style={styles.impactItem}>
-                <Text style={styles.impactValue}>6</Text>
+                <Text style={styles.impactValue}>{user?.actions_logged !== undefined ? user.actions_logged : 0}</Text>
                 <Text style={styles.impactLabel}>Actions Logged</Text>
               </View>
             </View>

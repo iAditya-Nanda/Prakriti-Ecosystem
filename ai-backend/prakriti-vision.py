@@ -83,7 +83,8 @@ while True:
     payload = {
         "model": MODEL_NAME,
         "prompt": prompt,
-        "stream": True
+        "stream": True,
+        "keep_alive": -1
     }
 
     if image_base64:
