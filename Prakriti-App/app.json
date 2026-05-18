@@ -17,6 +17,7 @@
     },
     "android": {
       "package": "com.iadityananda.prakritiapp",
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/prakriti.png",
         "backgroundColor": "#ffffff"
@@ -27,7 +28,15 @@
       "favicon": "./assets/prakriti.png"
     },
     "plugins": [
-      "expo-video"
+      "expo-video",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
     ],
     "extra": {
       "eas": {

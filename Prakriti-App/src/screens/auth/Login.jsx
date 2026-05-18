@@ -20,7 +20,7 @@ import Svg, { Path, Ellipse } from "react-native-svg";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 const { width, height } = Dimensions.get("window");
-const API_URL = `${process.env.EXPO_PUBLIC_SERVER_IP || "http://192.168.31.3"}:8080/api/v1/auth/login`;
+const API_URL = "http://100.111.171.19:8080/api/v1/auth/login";
 
 const Login = ({ navigation }) => {
   const [role, setRole] = useState("user");
@@ -107,7 +107,10 @@ const Login = ({ navigation }) => {
       else if (data.user.role === "verifier") navigation.replace("VerifierDashboard");
 
     } catch (err) {
-      Alert.alert("Network Error", "Unable to connect to server.");
+      Alert.alert(
+        "Network Error",
+        `Unable to connect to server at:\n${API_URL}\n\nMake sure your device is connected to the same network (e.g. Tailscale VPN) and the backend server is running.\n\nError: ${err.message}`
+      );
     }
 
     setLoading(false);

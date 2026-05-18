@@ -14,7 +14,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const SERVER_IP = `${process.env.EXPO_PUBLIC_SERVER_IP || "http://192.168.31.3"}:8080`;
+const SERVER_IP = "http://100.111.171.19:8080";
 
 const ACTION_TYPES = [
   { label: "Waste Disposal", key: "waste", icon: "delete-sweep-outline" },

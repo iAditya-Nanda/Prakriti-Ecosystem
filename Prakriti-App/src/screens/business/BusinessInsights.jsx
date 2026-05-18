@@ -17,7 +17,7 @@ import Svg, { Circle, Path } from "react-native-svg";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 const { width } = Dimensions.get("window");
-const SERVER_IP = `${process.env.EXPO_PUBLIC_SERVER_IP || "http://192.168.31.3"}:8080`;
+const SERVER_IP = "http://100.111.171.19:8080";
 
 const generatePath = (data, w, h) => {
   if (!data || data.length === 0) return "";

@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-const SERVER = `${process.env.EXPO_PUBLIC_SERVER_IP || "http://192.168.31.3"}:8080`;
+const SERVER = "http://100.111.171.19:8080";
 
 const VerifierQueueScreen = ({ navigation }) => {
   const [filter, setFilter] = useState("tourist");

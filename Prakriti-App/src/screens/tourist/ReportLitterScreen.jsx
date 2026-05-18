@@ -18,8 +18,8 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MapView, { Marker } from "react-native-maps";
 
-const SERVER = `${process.env.EXPO_PUBLIC_SERVER_IP || "http://192.168.31.3"}:8000`;
-const SERVER_CHECK = `${process.env.EXPO_PUBLIC_SERVER_IP || "http://192.168.31.3"}:8080`;
+const SERVER = "http://100.111.171.19:8000";
+const SERVER_CHECK = "http://100.111.171.19:8080";
 const DETECT_URL = `${SERVER}/detect_litter`;
 
 const ReportLitterScreen = ({ navigation }) => {

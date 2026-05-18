@@ -18,8 +18,8 @@ import * as ImageManipulator from "expo-image-manipulator";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-const ANALYZER_URL = `${process.env.EXPO_PUBLIC_SERVER_IP || "http://192.168.31.3"}:8000/analyze`;
-const SUBMIT_SERVER = `${process.env.EXPO_PUBLIC_SERVER_IP || "http://192.168.31.3"}:8080`;
+const ANALYZER_URL = "http://100.111.171.19:8000/analyze";
+const SUBMIT_SERVER = "http://100.111.171.19:8080";
 
 const HowToDisposeScreen = ({ navigation }) => {
   const [permission, requestPermission] = useCameraPermissions();
