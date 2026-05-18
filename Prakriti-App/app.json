@@ -16,6 +16,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.iadityananda.prakritiapp",
       "adaptiveIcon": {
         "foregroundImage": "./assets/prakriti.png",
         "backgroundColor": "#ffffff"
@@ -27,6 +28,11 @@
     },
     "plugins": [
       "expo-video"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "5a2222a5-941a-4984-96d3-3d7b9539b178"
+      }
+    }
   }
 }
