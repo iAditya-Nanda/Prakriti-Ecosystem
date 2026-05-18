@@ -94,8 +94,8 @@ echo "--------------------------------------------------------"
 # 3. Monitor Chat Server
 (
     while true; do
-        if grep -q "warmed up" chat.log 2>/dev/null; then
-            echo "🟢 AI Chat Server: Pre-warmed & Active on Port 8001!"
+        if grep -q "Serving Flask app" chat.log 2>/dev/null; then
+            echo "🟢 AI Chat Server: Active on Port 8001!"
             break
         elif grep -q "Address already in use" chat.log 2>/dev/null; then
             echo "⚠️ AI Chat Server: Port 8001 is already in use!"
@@ -108,29 +108,11 @@ echo "--------------------------------------------------------"
     done
 ) &
 
-# 4. Monitor Vision Server        "model": MODEL_NAME,
-        "uptime": datetime.utcnow().isoformat()
-    }), 200
-
-
-def pre_warm():
-    """Disabled pre-warming to prevent startup VRAM conflicts with Chat model."""
-    print(f"🌀 [Pre-warming] Skipped active loading of '{MODEL_NAME}' to conserve VRAM for Chat on boot.")
-
-# -----------------------------
-# ENTRY POINT
-# -----------------------------
-if __name__ == "__main__":
-    print("🌿 Starting PrakritiK AI Vision Server...")
-    # Only pre-warm in the active main process to avoid duplicate runs due to Werkzeug reloader
-    if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not app.debug:
-        pre_warm()
-    app.run(host="0.0.0.0", port=8000, debug=True)
-
+# 4. Monitor Vision Server
 (
     while true; do
-        if grep -q "warmed up" vision.log 2>/dev/null; then
-            echo "🟢 AI Vision Server: Pre-warmed & Active on Port 8000!"
+        if grep -q "Serving Flask app" vision.log 2>/dev/null; then
+            echo "🟢 AI Vision Server: Active on Port 8000!"
             break
         elif grep -q "Address already in use" vision.log 2>/dev/null; then
             echo "⚠️ AI Vision Server: Port 8000 is already in use!"
