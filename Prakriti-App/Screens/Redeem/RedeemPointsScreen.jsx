@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
     View,
     Text,
@@ -10,6 +10,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const rewards = [
     {
@@ -40,7 +41,22 @@ const rewards = [
 
 const RedeemPointsScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
-    const userPoints = 120; // ← Replace with real user data later
+    const [userPoints, setUserPoints] = useState(0);
+
+    useEffect(() => {
+        const loadPoints = async () => {
+            try {
+                const stored = await AsyncStorage.getItem("prakriti_user");
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    setUserPoints(parsed.balance || 0);
+                }
+            } catch (err) {
+                console.log("Failed to load points on Redeem screen:", err);
+            }
+        };
+        loadPoints();
+    }, []);
 
     return (
         <SafeAreaView style={[styles.safe, { paddingTop: insets.top + 6 }]}>

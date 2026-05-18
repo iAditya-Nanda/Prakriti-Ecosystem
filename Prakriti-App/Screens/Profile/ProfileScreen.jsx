@@ -11,6 +11,8 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+const SERVER = "http://192.168.31.3:8080";
+
 const ProfileScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
 
@@ -30,6 +32,19 @@ const ProfileScreen = ({ navigation }) => {
       // Generate a random pleasant background color for avatar
       const colors = ["#7FB77E", "#6BAF92", "#8AB7A1", "#9FC8A6", "#7FB8B8", "#9CD4C3"];
       setAvatarColor(colors[Math.floor(Math.random() * colors.length)]);
+
+      // Fetch fresh live details from PostgreSQL & Blockchain
+      try {
+        const res = await fetch(`${SERVER}/api/v1/auth/profile/${parsed.id}`);
+        const json = await res.json();
+        if (json.success && json.user) {
+          const updatedUser = { ...parsed, ...json.user };
+          setUser(updatedUser);
+          await AsyncStorage.setItem("prakriti_user", JSON.stringify(updatedUser));
+        }
+      } catch (err) {
+        console.log("Failed to fetch fresh profile data:", err);
+      }
     }
   };
 
@@ -68,15 +83,20 @@ const ProfileScreen = ({ navigation }) => {
 
           <Text style={styles.name}>{user?.name || "Guest User"}</Text>
           <Text style={styles.email}>{user?.contact || "demo@prakriti.app"}</Text>
+          {user?.wallet_address && (
+            <Text style={{ fontSize: 11, color: "#647367", marginTop: 4, fontFamily: "monospace" }}>
+              Wallet: {user.wallet_address.substring(0, 10)}...{user.wallet_address.substring(user.wallet_address.length - 4)}
+            </Text>
+          )}
           <Text style={styles.roleBadge}>{(user?.role || "user").toUpperCase()}</Text>
 
           <View style={styles.impactRow}>
             <View style={styles.impactItem}>
-              <Text style={styles.impactValue}>120</Text>
+              <Text style={styles.impactValue}>{user?.balance !== undefined ? user.balance : 0}</Text>
               <Text style={styles.impactLabel}>Green Points</Text>
             </View>
             <View style={styles.impactItem}>
-              <Text style={styles.impactValue}>6</Text>
+              <Text style={styles.impactValue}>{user?.actions_logged !== undefined ? user.actions_logged : 0}</Text>
               <Text style={styles.impactLabel}>Actions Logged</Text>
             </View>
           </View>

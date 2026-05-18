@@ -29,7 +29,7 @@ class GreenPointsAPI:
     # ==================== USER MANAGEMENT ====================
     
     def register_user(self, name: str, email: Optional[str] = None, 
-                     phone: Optional[str] = None) -> Dict:
+                     phone: Optional[str] = None, role: str = 'user') -> Dict:
         """
         Register a new user
         
@@ -54,7 +54,7 @@ class GreenPointsAPI:
         wallet = Wallet(name, email)
         
         # Create user in database
-        user_id = self.db.create_user(name, email, phone, 'user', wallet.address)
+        user_id = self.db.create_user(name, email, phone, role, wallet.address)
         
         if user_id:
             return {
@@ -264,14 +264,15 @@ class GreenPointsAPI:
     
     def generate_qr_code(self, business_id: int, reward_amount: float,
                         service_description: str = "",
-                        expires_in_hours: Optional[int] = None) -> Dict:
+                        expires_in_hours: Optional[int] = None,
+                        custom_qr_code: Optional[str] = None) -> Dict:
         """Generate a QR code for a business"""
         business = self.db.get_user_by_id(business_id)
         if not business or business['role'] != 'business':
             return {"success": False, "message": "Only businesses can generate QR codes", "data": None}
         
         success, message, qr_code = self.qr_manager.create_qr_code(
-            business_id, reward_amount, service_description, expires_in_hours
+            business_id, reward_amount, service_description, expires_in_hours, custom_qr_code
         )
         
         if success:
