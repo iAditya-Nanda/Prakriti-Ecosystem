@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,11 +9,29 @@ import {
   TouchableOpacity
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 const AIChatIntroScreen = ({ navigation }) => {
   const [text, setText] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const history = await AsyncStorage.getItem("chat_history");
+        if (history) {
+          const parsed = JSON.parse(history);
+          // If there's more than just the greeting (which is 1 message), redirect to Thread
+          if (parsed && parsed.length > 1) {
+            navigation.replace("AIChatThread", { initialMessage: null });
+          }
+        }
+      } catch (e) {
+        console.log("Error loading chat history in intro:", e);
+      }
+    })();
+  }, []);
 
   const startChat = () => {
     if (!text.trim()) return;

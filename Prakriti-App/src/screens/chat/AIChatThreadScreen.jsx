@@ -64,13 +64,14 @@ const AIChatThreadScreen = ({ route, navigation }) => {
         ...oldFiltered
       ];
 
-      if (initialMessage && !isAlreadySent) {
-        start.push({ id: `initial_${Date.now()}`, sender: "user", text: initialMessage });
-      }
-
       setMessages(start);
       saveHistory(start);
       scrollToBottom();
+
+      // Automatically send the initial message to the server if not already sent
+      if (initialMessage && !isAlreadySent) {
+        await ask(initialMessage);
+      }
     })();
   }, []);
 
@@ -84,33 +85,91 @@ const AIChatThreadScreen = ({ route, navigation }) => {
     if (!text.trim()) return;
     setInput("");
 
-    const newMsgs = [...messages, { id: Date.now().toString(), sender: "user", text }];
-    setMessages(newMsgs);
-    saveHistory(newMsgs);
+    // Create unique non-colliding ID for the user message
+    const userMsgId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+    const userMsg = { id: userMsgId, sender: "user", text };
+    setMessages((prev) => {
+      const updated = [...prev, userMsg];
+      saveHistory(updated);
+      return updated;
+    });
     scrollToBottom();
 
     setLoadingReply(true);
     setShowTyping(true);
 
+    // Create unique non-colliding ID specifically for the bot message
+    const botMsgId = `bot_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+    const botMsg = { id: botMsgId, sender: "bot", text: "" };
+
     try {
+      // Perform a standard POST request which is 100% supported on all physical phones
       const res = await fetch(CHAT_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json" // Request standard JSON instead of event-stream
+        },
         body: JSON.stringify({ message: text }),
       });
+
+      if (!res.ok) {
+        throw new Error(`Server returned status ${res.status}`);
+      }
 
       const json = await res.json();
       const reply = json.assistant || "I’m here to help 🌱";
 
-      const updated = [...newMsgs, { id: Date.now().toString(), sender: "bot", text: reply }];
-      setMessages(updated);
-      saveHistory(updated);
-      scrollToBottom();
-    } catch (e) {
-      console.log("Chat error:", e);
-    } finally {
+      // Hide the loading state
       setLoadingReply(false);
       setShowTyping(false);
+
+      // Inject the bot message bubble in the UI
+      setMessages((prev) => [...prev, botMsg]);
+      scrollToBottom();
+
+      // High-performance typewriter character-by-character animation
+      let currentText = "";
+      let index = 0;
+      const interval = setInterval(() => {
+        if (index < reply.length) {
+          currentText += reply[index];
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === botMsgId ? { ...msg, text: currentText } : msg
+            )
+          );
+          scrollToBottom();
+          index++;
+        } else {
+          clearInterval(interval);
+          // Persist the final state in the history once streaming completes
+          setMessages((prev) => {
+            saveHistory(prev);
+            return prev;
+          });
+        }
+      }, 12); // 12ms per character creates an incredibly satisfying, fluid typing effect!
+
+    } catch (e) {
+      console.log("Chat error:", e);
+      setLoadingReply(false);
+      setShowTyping(false);
+
+      // Display a visual error bubble so the user understands why the API failed
+      const errorMsg = {
+        id: `err_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        sender: "bot",
+        text: `⚠️ **Connection Error**: Could not get a response from Prakriti AI.\n\nPlease verify that your server is running on the backend laptop.\n\n*(Endpoint: ${CHAT_URL})*`
+      };
+
+      setMessages((prev) => {
+        const filtered = prev.filter((msg) => msg.id !== botMsgId);
+        const updated = [...filtered, errorMsg];
+        saveHistory(updated);
+        return updated;
+      });
+      scrollToBottom();
     }
   };
 
@@ -124,8 +183,13 @@ const AIChatThreadScreen = ({ route, navigation }) => {
     const fd = new FormData();
     fd.append("image", { uri, name: `item_${Date.now()}.jpg`, type: "image/jpeg" });
 
-    const userMsgs = [...messages, { id: Date.now().toString(), sender: "user", image: uri }];
-    setMessages(userMsgs);
+    // Append user image using functional updater with unique ID
+    const userMsgId = `user_img_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+    const userMsg = { id: userMsgId, sender: "user", image: uri };
+    setMessages((prev) => {
+      const updated = [...prev, userMsg];
+      return updated;
+    });
     scrollToBottom();
     setShowTyping(true);
 
@@ -140,27 +204,55 @@ const AIChatThreadScreen = ({ route, navigation }) => {
       });
 
       clearTimeout(timeout);
-      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(`Server returned status ${res.status}`);
+      }
 
+      const json = await res.json();
       const summary = json.analysis.summary;
       const steps = json.analysis.instructions.join("\n• ");
       const reply = `🌿 **${summary}**\n\n**How to dispose:**\n• ${steps}`;
+      const botMsg = { id: Date.now().toString(), sender: "bot", text: reply };
 
-      const updated = [...userMsgs, { id: Date.now().toString(), sender: "bot", text: reply }];
-      setMessages(updated);
-      saveHistory(updated);
+      setMessages((prev) => {
+        const updated = [...prev, botMsg];
+        saveHistory(updated);
+        return updated;
+      });
       scrollToBottom();
     } catch (err) {
       console.log("Analysis error:", err);
+      // Display a visual error bubble for image analysis failure
+      const errorMsg = {
+        id: `err_${Date.now()}`,
+        sender: "bot",
+        text: `⚠️ **Analysis Error**: Could not analyze the image.\n\nPlease verify that your AI vision server is running on the backend laptop.\n\n*(Endpoint: ${ANALYZE_URL})*`
+      };
+      setMessages((prev) => {
+        const updated = [...prev, errorMsg];
+        saveHistory(updated);
+        return updated;
+      });
+      scrollToBottom();
     } finally {
       setShowTyping(false);
     }
   };
 
   const clearChat = async () => {
-    await fetch(CLEAR_URL, { method: "POST" });
+    try {
+      // Fire-and-forget clear request to backend without blocking local UI reset
+      fetch(CLEAR_URL, { method: "POST" }).catch((e) => 
+        console.log("Backend chat clear error (ignoring to reset locally):", e)
+      );
+    } catch (err) {
+      console.log("Clear request error:", err);
+    }
+
+    // Always clear local history instantly
     await AsyncStorage.removeItem("chat_history");
-    setMessages([{ id: "hello", sender: "bot", text: "Chat cleared ✅" }]);
+    setMessages([{ id: "hello", sender: "bot", text: "Hi! I’m Prakriti AI 🌿 Ask me anything." }]);
+    scrollToBottom();
   };
 
   const renderItem = ({ item }) => {
@@ -197,7 +289,7 @@ const AIChatThreadScreen = ({ route, navigation }) => {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
+      <View style={{ flex: 1 }}>
         {/* Sleek Top Navigation Bar */}
         <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
           <TouchableOpacity
@@ -219,12 +311,13 @@ const AIChatThreadScreen = ({ route, navigation }) => {
 
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          behavior="padding"
+          keyboardVerticalOffset={0}
         >
           <FlatList
             ref={flatListRef}
             data={messages}
-            keyExtractor={(i) => i.id}
+            keyExtractor={(item, index) => `${item.id || "msg"}_${index}`}
             renderItem={renderItem}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
@@ -272,7 +365,7 @@ const AIChatThreadScreen = ({ route, navigation }) => {
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
-      </SafeAreaView>
+      </View>
     </View>
   );
 };

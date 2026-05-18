@@ -11,6 +11,7 @@ import {
   TouchableOpacity
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
@@ -22,6 +23,24 @@ const HomeScreen = ({ navigation }) => {
   const cardGap = 12;
   const hPad = G.xl;
   const cardWidth = useMemo(() => Math.min(width - hPad * 2, 520), [width]);
+
+  const handleChatPress = async () => {
+    try {
+      const history = await AsyncStorage.getItem("chat_history");
+      if (history) {
+        const parsed = JSON.parse(history);
+        // If there's more than just the greeting (which is 1 message), continue active chat directly
+        if (parsed && parsed.length > 1) {
+          navigation.navigate("AIChatThread", { initialMessage: null });
+          return;
+        }
+      }
+    } catch (e) {
+      console.log("Error checking chat history:", e);
+    }
+    // Otherwise, onboard with the clean intro screen
+    navigation.navigate("AIChatIntro");
+  };
 
   const prompts = [
     "Blue Leaf Eco Café nearby—refill to avoid 1–2 bottles.",
@@ -102,14 +121,14 @@ const HomeScreen = ({ navigation }) => {
             <View style={styles.aiRow}>
               <TouchableOpacity
                 style={styles.aiFakeInput}
-                onPress={() => navigation.navigate("AIChatIntro")}
+                onPress={handleChatPress}
                 activeOpacity={0.8}
               >
                 <Text style={styles.aiFakeInputText}>Ask how to dispose… e.g., coffee lid</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => navigation.navigate("AIChatIntro")}
+                onPress={handleChatPress}
                 style={styles.aiSend}
                 activeOpacity={0.8}
               >

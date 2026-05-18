@@ -6,13 +6,34 @@ import {
   Text,
   ActivityIndicator
 } from "react-native";
-import { Video } from "expo-av";
+import { useVideoPlayer, VideoView } from "expo-video";
+import { useEventListener } from "expo";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const SplashScreen = ({ navigation }) => {
   const videoRef = useRef(null);
+
+  // Background video player setup
+  const backgroundPlayer = useVideoPlayer(require("../../../assets/prakriti-video.mp4"), player => {
+    player.loop = true;
+    player.muted = true;
+    player.play();
+  });
+
+  // Setup for foreground video player if you decide to use it in the future:
+  /*
+  const foregroundPlayer = useVideoPlayer(require("../../../assets/prakriti-video.mp4"), player => {
+    player.loop = false;
+    player.muted = true;
+    player.play();
+  });
+
+  useEventListener(foregroundPlayer, "playToEnd", () => {
+    handleEnd();
+  });
+  */
 
   // Check login & role
   const handleEnd = async () => {
@@ -45,31 +66,25 @@ const SplashScreen = ({ navigation }) => {
 
       {/* BLURRED BACKGROUND FILL VIDEO */}
       <View style={styles.backgroundWrapper}>
-        <Video
-          source={require("../../../assets/prakriti-video.mp4")}
+        <VideoView
+          player={backgroundPlayer}
           style={styles.backgroundVideo}
-          resizeMode="cover"
-          shouldPlay
-          isLooping
-          isMuted
+          contentFit="cover"
+          nativeControls={false}
         />
         <BlurView intensity={75} tint="dark" style={StyleSheet.absoluteFill} />
       </View>
 
       {/* MAIN FOREGROUND VIDEO */}
       <View style={styles.foregroundWrapper}>
-        {/* <Video
-          ref={videoRef}
-          source={require("../../../assets/prakriti-video.mp4")}
+        {/* 
+        <VideoView
+          player={foregroundPlayer}
           style={styles.foregroundVideo}
-          resizeMode="contain"
-          shouldPlay
-          isLooping={false}
-          isMuted
-          onPlaybackStatusUpdate={(status) => {
-            if (status.didJustFinish) handleEnd();
-          }}
-        /> */}
+          contentFit="contain"
+          nativeControls={false}
+        />
+        */}
 
         {/* WELCOME TITLE */}
         <Text style={styles.welcomeText}>Welcome to Prakriti</Text>

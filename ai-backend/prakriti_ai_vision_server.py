@@ -76,6 +76,99 @@ No extra text outside JSON.
 # -----------------------------
 # HELPERS
 # -----------------------------
+def extract_keys_via_regex(raw_text):
+    """Fallback parser that extracts keys from malformed JSON string using regex."""
+    data = {
+        "summary": "Detected Waste Item",
+        "material": "unspecified",
+        "disposal_category": "non-recyclable",
+        "recyclable": False,
+        "hazardous": False,
+        "confidence": 0.85,
+        "instructions": [],
+        "suggested_alternatives": [],
+        "follow_up_question": "Can we reduce the use of single-use items in our daily routine?"
+    }
+    try:
+        # 1. extract string fields
+        for field in ["summary", "material", "disposal_category", "follow_up_question"]:
+            field_match = re.search(fr'"{field}"\s*:\s*"([^"]*)"', raw_text)
+            if field_match:
+                data[field] = field_match.group(1).strip()
+            else:
+                field_match_lazy = re.search(fr'"{field}"\s*:\s*"([\s\S]*?)"(?=\s*[,}}])', raw_text)
+                if field_match_lazy:
+                    data[field] = field_match_lazy.group(1).strip().replace("\n", " ")
+
+        # 2. extract booleans
+        for field in ["recyclable", "hazardous"]:
+            bool_match = re.search(fr'"{field}"\s*:\s*(true|false)', raw_text, re.IGNORECASE)
+            if bool_match:
+                data[field] = bool_match.group(1).lower() == "true"
+
+        # 3. extract confidence
+        conf_match = re.search(r'"confidence"\s*:\s*([0-9.]+)', raw_text)
+        if conf_match:
+            data["confidence"] = float(conf_match.group(1))
+
+        # 4. extract instructions array
+        instr_match = re.search(r'"instructions"\s*:\s*\[([\s\S]*?)\]', raw_text)
+        if instr_match:
+            items = re.findall(r'"([^"]*)"', instr_match.group(1))
+            data["instructions"] = [item.strip() for item in items if item.strip()]
+        else:
+            instr_match_lazy = re.search(r'"instructions"\s*:\s*\[([\s\S]*?)(?="$|[,}}])', raw_text)
+            if instr_match_lazy:
+                items = re.findall(r'"([^"]*)"', instr_match_lazy.group(1))
+                data["instructions"] = [item.strip() for item in items if item.strip()]
+
+        # 5. extract suggested_alternatives array
+        alt_match = re.search(r'"suggested_alternatives"\s*:\s*\[([\s\S]*?)\]', raw_text)
+        if alt_match:
+            items = re.findall(r'"([^"]*)"', alt_match.group(1))
+            data["suggested_alternatives"] = [item.strip() for item in items if item.strip()]
+
+        # 6. Fallback smart defaults for instructions if list is empty
+        if not data["instructions"]:
+            category = data["disposal_category"].lower()
+            if "recyclable" in category and "non-" not in category:
+                data["instructions"] = [
+                    "Step 1: Clean and rinse any organic/liquid residue from the item.",
+                    "Step 2: Dry the item to prevent contamination of other materials.",
+                    "Step 3: Dispose of it in your local municipality's designated dry recycling bin."
+                ]
+                data["recyclable"] = True
+            elif "organic" in category:
+                data["instructions"] = [
+                    "Step 1: Separate from any plastic bags or packaging material.",
+                    "Step 2: Place in your local wet/organic composting bin.",
+                    "Step 3: Ideal for backyard composting to enrich local soil."
+                ]
+            elif "hazardous" in category:
+                data["instructions"] = [
+                    "Step 1: Handle with care to avoid personal injury or chemical exposure.",
+                    "Step 2: Store in a sealed container or box away from children.",
+                    "Step 3: Drop off at a registered regional hazardous waste collection point."
+                ]
+                data["hazardous"] = True
+            else:
+                data["instructions"] = [
+                    "Step 1: Check for any small recyclable components (e.g. plastic caps).",
+                    "Step 2: Place the main body of the item in the general/landfill bin.",
+                    "Step 3: Try to purchase sustainable alternatives for future use."
+                ]
+
+        if not data["suggested_alternatives"]:
+            data["suggested_alternatives"] = [
+                "Consider purchasing items made of zero-plastic, biodegradable materials.",
+                "Choose reusable containers and bags instead of disposable ones."
+            ]
+
+    except Exception as e:
+        print(f"⚠️ [Regex Extractor] Error parsing: {e}")
+    return data
+
+
 def clean_json(raw):
     """Cleans AI output and extracts valid JSON."""
     text = raw.strip()
@@ -83,14 +176,52 @@ def clean_json(raw):
     if start == -1 or end == 0:
         return None
     text = text[start:end]
+    # Replace single quotes with double quotes around keys and strings
+    text = re.sub(r"'([^']*)'", r'"\1"', text)
+    # Fix trailing commas
     text = re.sub(r',\s*([\]}])', r'\1', text)
+    # Correct booleans
     text = re.sub(r'\bTrue\b', 'true', text)
     text = re.sub(r'\bFalse\b', 'false', text)
     return text
 
 
+def resize_image_if_large(img_path, max_dim=512):
+    """Resizes image to a max dimension of max_dim, preserving aspect ratio."""
+    try:
+        from PIL import Image
+        with Image.open(img_path) as img:
+            width, height = img.size
+            if width > max_dim or height > max_dim:
+                if width > height:
+                    new_width = max_dim
+                    new_height = int(height * (max_dim / width))
+                else:
+                    new_height = max_dim
+                    new_width = int(width * (max_dim / height))
+                img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                if img.mode in ("RGBA", "P"):
+                    img = img.convert("RGB")
+                img.save(img_path, "JPEG", quality=85)
+                print(f"📐 [Resize] Downscaled image from {width}x{height} to {new_width}x{new_height} for safety")
+    except Exception as e:
+        print(f"⚠️ [Resize] Failed to resize image: {e}")
+
+
 def analyze_image(model, img_path, prompt):
     """Sends image and prompt to Ollama model."""
+    # 📐 Cleanly resize image before sending to Ollama to prevent VRAM overflow
+    resize_image_if_large(img_path)
+
+    # 🧹 Instantly unload chat model from GPU memory before launching vision analysis
+    try:
+        import ollama
+        ollama.generate(model="prakriti-chat:latest", prompt="", keep_alive=0)
+        import time
+        time.sleep(1.5)  # ⏳ Give Ollama scheduler time to release GPU VRAM
+    except Exception:
+        pass
+
     try:
         response = ollama.chat(
             model=model,
@@ -98,13 +229,21 @@ def analyze_image(model, img_path, prompt):
                 {"role": "system", "content": "You are PrakritiK AI — an advanced sustainability vision model."},
                 {"role": "user", "content": prompt, "images": [img_path]},
             ],
-            keep_alive=-1
+            keep_alive=0
         )
         raw = response["message"]["content"]
+        print(f"\n🤖 [RAW AI RESPONSE]:\n{raw}\n----------------------\n")
+        
         cleaned = clean_json(raw)
         if not cleaned:
-            return None
-        return json.loads(cleaned)
+            print("⚠️ Standard JSON cleaning failed. Falling back to robust regex extractor...")
+            return extract_keys_via_regex(raw)
+            
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError as je:
+            print(f"⚠️ json.loads failed on cleaned string: {je}. Falling back to robust regex extractor...")
+            return extract_keys_via_regex(raw)
     except Exception as e:
         print(f"⚠️ Model error: {e}")
         return None
@@ -150,10 +289,16 @@ def analyze():
     filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
     image.save(filepath)
 
-    print(f"\n🧠 Analyzing waste type: {filename}")
+    start_time = time.time()
+    from datetime import datetime
+    print(f"\n📥 [{datetime.utcnow().strftime('%H:%M:%S')}] Received /analyze request for image: {filename}")
+    print(f"⏳ Forwarding image to custom LLaVA 7B model (GPU) — Mobile keeps connection alive for 120s max...")
+
     result = analyze_image(MODEL_NAME, filepath, WASTE_PROMPT)
 
+    duration = time.time() - start_time
     if not result:
+        print(f"❌ [{datetime.utcnow().strftime('%H:%M:%S')}] /analyze failed after {duration:.2f}s (AI failed to return valid JSON)")
         return jsonify({"error": "AI failed to return valid JSON"}), 500
 
     corrected = logic_layer(result)
@@ -165,6 +310,9 @@ def analyze():
         "source_image": filename,
         "analysis": corrected
     }
+
+    print(f"✨ [{datetime.utcnow().strftime('%H:%M:%S')}] /analyze completed successfully in {duration:.2f}s!")
+    print(f"📦 Classified Class: '{corrected.get('class', 'unknown')}' | Confidence: {corrected.get('confidence', 0.0)}")
 
     return jsonify(response), 200
 
@@ -180,10 +328,16 @@ def detect_litter():
     filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
     image.save(filepath)
 
-    print(f"\n🌍 Detecting litter presence: {filename}")
+    start_time = time.time()
+    from datetime import datetime
+    print(f"\n🌍 [{datetime.utcnow().strftime('%H:%M:%S')}] Received /detect_litter request for image: {filename}")
+    print(f"⏳ Analyzing litter on LLaVA 7B model (GPU)...")
+
     result = analyze_image(MODEL_NAME, filepath, LITTER_PROMPT)
 
+    duration = time.time() - start_time
     if not result:
+        print(f"❌ [{datetime.utcnow().strftime('%H:%M:%S')}] /detect_litter failed after {duration:.2f}s (AI failed to return valid JSON)")
         return jsonify({"error": "AI failed to return valid JSON"}), 500
 
     response = {
@@ -194,7 +348,7 @@ def detect_litter():
         "detection": result
     }
 
-    print(f"✅ Litter detection complete for {filename}\n")
+    print(f"✅ Litter detection complete for {filename} in {duration:.2f}s\n")
     return jsonify(response), 200
 
 
@@ -209,14 +363,8 @@ def health():
 
 
 def pre_warm():
-    """Sync/blocking pre-warming on boot to ensure model is fully loaded before server starts serving."""
-    print(f"🌀 [Pre-warming] Proactively loading and initializing vision model '{MODEL_NAME}'...")
-    try:
-        start_time = time.time()
-        ollama.generate(model=MODEL_NAME, prompt="Hello", keep_alive=-1)
-        print(f"✨ [Pre-warming] Vision model '{MODEL_NAME}' is fully warmed up in {time.time() - start_time:.2f}s and ready!")
-    except Exception as e:
-        print(f"⚠️ [Pre-warming Failed] Could not load model '{MODEL_NAME}': {e}")
+    """Disabled pre-warming to prevent startup VRAM conflicts with Chat model."""
+    print(f"🌀 [Pre-warming] Skipped active loading of '{MODEL_NAME}' to conserve VRAM for Chat on boot.")
 
 # -----------------------------
 # ENTRY POINT

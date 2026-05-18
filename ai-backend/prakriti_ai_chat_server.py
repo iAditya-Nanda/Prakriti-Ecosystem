@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, Response, jsonify
 from flask_cors import CORS
 import requests
 import json
@@ -26,7 +26,7 @@ def build_prompt(user_input: str) -> str:
     prompt = (
         "You are Prakriti AI — an expert sustainability and waste management assistant. "
         "Provide concise, factual, and eco-conscious guidance. "
-        "Answer in a concise to the point manner. Do not paste long paragraphs"
+        "Answer in a concise to the point manner. Do not paste long paragraphs\n"
         "Use warm and natural language, but stay professional.\n\n"
     )
 
@@ -38,41 +38,23 @@ def build_prompt(user_input: str) -> str:
     return prompt
 
 
-def query_ollama(prompt: str):
-    """Sends the prompt to the Ollama model and returns the complete response."""
-    payload = {
-        "model": MODEL_NAME,
-        "prompt": prompt,
-        "stream": True,
-        "keep_alive": -1
-    }
-
-    response_text = ""
-    try:
-        with requests.post(OLLAMA_URL, json=payload, stream=True) as r:
-            r.raise_for_status()
-            for line in r.iter_lines():
-                if not line:
-                    continue
-                try:
-                    data = json.loads(line.decode("utf-8"))
-                    chunk = data.get("response", "")
-                    response_text += chunk
-                except json.JSONDecodeError:
-                    continue
-    except Exception as e:
-        print(f"❌ Error communicating with Ollama: {e}")
-        return None
-
-    return response_text.strip()
-
-
 # -----------------------------
 # ROUTES
 # -----------------------------
 @app.route("/chat", methods=["POST"])
 def chat():
-    """Main chat endpoint."""
+    """Main chat endpoint with SSE streaming or standard JSON fallback."""
+    # 🧹 Instantly unload vision model from GPU memory before launching chat
+    try:
+        requests.post("http://localhost:11434/api/generate", json={
+            "model": "prakriti-vision:latest",
+            "prompt": "",
+            "keep_alive": 0
+        }, timeout=5)
+        time.sleep(1.5)  # ⏳ Give Ollama scheduler time to release GPU VRAM
+    except Exception:
+        pass
+
     data = request.get_json(force=True)
     user_input = data.get("message", "").strip()
 
@@ -82,21 +64,68 @@ def chat():
     print(f"👤 User: {user_input}")
 
     prompt = build_prompt(user_input)
-    reply = query_ollama(prompt)
 
-    if not reply:
-        return jsonify({"error": "No response from model"}), 500
+    # Check if the client requested SSE stream or standard JSON
+    accept_header = request.headers.get("Accept", "")
+    use_stream = "text/event-stream" in accept_header or data.get("stream", False)
 
-    chat_history.append({"role": "user", "content": user_input})
-    chat_history.append({"role": "assistant", "content": reply})
+    if use_stream:
+        def generate():
+            payload = {
+                "model": MODEL_NAME,
+                "prompt": prompt,
+                "stream": True,
+                "keep_alive": 0
+            }
+            full_reply = ""
+            try:
+                with requests.post(OLLAMA_URL, json=payload, stream=True) as r:
+                    r.raise_for_status()
+                    for line in r.iter_lines():
+                        if not line:
+                            continue
+                        try:
+                            data_json = json.loads(line.decode("utf-8"))
+                            chunk = data_json.get("response", "")
+                            full_reply += chunk
+                            yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+                        except json.JSONDecodeError:
+                            continue
+                
+                chat_history.append({"role": "user", "content": user_input})
+                chat_history.append({"role": "assistant", "content": full_reply.strip()})
+                print(f"🪷 Prakriti AI: {full_reply.strip()}\n")
+            except Exception as e:
+                print(f"❌ Error during generation: {e}")
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
-    print(f"🪷 PrakritiK AI: {reply}\n")
-
-    return jsonify({
-        "assistant": reply,
-        "context_length": len(chat_history),
-        "model": MODEL_NAME
-    })
+        return Response(generate(), mimetype="text/event-stream")
+    else:
+        # Standard JSON fallback for robust mobile client compatibility
+        payload = {
+            "model": MODEL_NAME,
+            "prompt": prompt,
+            "stream": False,
+            "keep_alive": 0
+        }
+        try:
+            r = requests.post(OLLAMA_URL, json=payload, timeout=120)
+            r.raise_for_status()
+            data_json = r.json()
+            reply = data_json.get("response", "").strip()
+            
+            chat_history.append({"role": "user", "content": user_input})
+            chat_history.append({"role": "assistant", "content": reply})
+            print(f"🪷 Prakriti AI (JSON): {reply}\n")
+            
+            return jsonify({
+                "assistant": reply,
+                "context_length": len(chat_history),
+                "model": MODEL_NAME
+            })
+        except Exception as e:
+            print(f"❌ Error communicating with Ollama: {e}")
+            return jsonify({"error": str(e)}), 500
 
 
 @app.route("/clear_history", methods=["POST"])
@@ -117,20 +146,8 @@ def health():
 
 
 def pre_warm():
-    """Sync/blocking pre-warming on boot to ensure model is fully loaded before server starts serving."""
-    print(f"🌀 [Pre-warming] Proactively loading and initializing chat model '{MODEL_NAME}'...")
-    try:
-        payload = {
-            "model": MODEL_NAME,
-            "prompt": "Hello",  # Actual prompt to warm up the model completely
-            "stream": False,
-            "keep_alive": -1
-        }
-        start_time = time.time()
-        requests.post(OLLAMA_URL, json=payload, timeout=180)
-        print(f"✨ [Pre-warming] Chat model '{MODEL_NAME}' is fully warmed up in {time.time() - start_time:.2f}s and ready!")
-    except Exception as e:
-        print(f"⚠️ [Pre-warming Failed] Could not load model '{MODEL_NAME}': {e}")
+    """Disabled pre-warming to conserve startup VRAM on low-memory GPU."""
+    print(f"🌀 [Pre-warming] Skipped active loading of '{MODEL_NAME}' to conserve VRAM on boot.")
 
 # -----------------------------
 # ENTRY POINT

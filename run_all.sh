@@ -15,28 +15,34 @@ trap cleanup EXIT SIGINT SIGTERM
 
 echo "🚀 Initializing Prakriti Ecosystem..."
 
+echo "🧹 Cleaning and freeing active ports (5000, 8080, 8000, 8001, 5173)..."
+for port in 5000 8080 8000 8001 5173; do
+    fuser -k -n tcp $port 2>/dev/null || true
+done
+sleep 1
+
 # 1. Start Green Points Blockchain (Backend)
 echo "🔗 Starting Green Points Blockchain (Port 5000)..."
 cd greenPoints-local-Blockchain
-python3 server.py > ../blockchain.log 2>&1 &
+python3 -u server.py > ../blockchain.log 2>&1 &
 cd ..
 
 # 2. Start Prakriti Central API (API)
 echo "🌐 Starting Prakriti Central API (Port 8080)..."
 cd Prakriti-Apis
-python3 server.py > ../api.log 2>&1 &
+python3 -u server.py > ../api.log 2>&1 &
 cd ..
 
 # 3. Start AI Vision Server
 echo "👁️ Starting AI Vision Server (Port 8000)..."
 cd ai-backend
-python3 prakriti_ai_vision_server.py > ../vision.log 2>&1 &
+python3 -u prakriti_ai_vision_server.py > ../vision.log 2>&1 &
 cd ..
 
 # 4. Start AI Chat Server
 echo "💬 Starting AI Chat Server (Port 8001)..."
 cd ai-backend
-python3 prakriti_ai_chat_server.py > ../chat.log 2>&1 &
+python3 -u prakriti_ai_chat_server.py > ../chat.log 2>&1 &
 cd ..
 
 # 5. Start Prakriti Dashboard (Web/Electron)
@@ -50,9 +56,95 @@ cd ..
 # echo "📱 Starting Prakriti App (Expo)..."
 # cd Prakriti-App && npx expo start &
 
-echo "✅ All services are starting in the background!"
+echo "✅ All services launched in the background!"
 echo "📄 Logs are being written to: blockchain.log, api.log, vision.log, chat.log, dashboard.log"
-echo "💡 Press Ctrl+C to stop all services."
+echo "--------------------------------------------------------"
+echo "🔍 Monitoring startup pre-warming in real-time..."
+echo "--------------------------------------------------------"
+
+# 1. Monitor Blockchain
+(
+    for i in {1..10}; do
+        if grep -q "Server running at" blockchain.log 2>/dev/null; then
+            echo "🟢 Blockchain Server: Active on Port 5000!"
+            break
+        elif grep -q "Address already in use" blockchain.log 2>/dev/null; then
+            echo "⚠️ Blockchain Server: Port 5000 is already in use by another program!"
+            break
+        fi
+        sleep 1
+    done
+) &
+
+# 2. Monitor Central API
+(
+    for i in {1..10}; do
+        if grep -q "Serving Flask app" api.log 2>/dev/null; then
+            if grep -q "Address already in use" api.log 2>/dev/null; then
+                echo "⚠️ Central API Server: Port 8080 is already in use!"
+            else
+                echo "🟢 Central API Server: Active on Port 8080!"
+            fi
+            break
+        fi
+        sleep 1
+    done
+) &
+
+# 3. Monitor Chat Server
+(
+    while true; do
+        if grep -q "warmed up" chat.log 2>/dev/null; then
+            echo "🟢 AI Chat Server: Pre-warmed & Active on Port 8001!"
+            break
+        elif grep -q "Address already in use" chat.log 2>/dev/null; then
+            echo "⚠️ AI Chat Server: Port 8001 is already in use!"
+            break
+        elif grep -q "Error" chat.log 2>/dev/null; then
+            echo "❌ AI Chat Server: Encountered an error during startup!"
+            break
+        fi
+        sleep 1
+    done
+) &
+
+# 4. Monitor Vision Server        "model": MODEL_NAME,
+        "uptime": datetime.utcnow().isoformat()
+    }), 200
+
+
+def pre_warm():
+    """Disabled pre-warming to prevent startup VRAM conflicts with Chat model."""
+    print(f"🌀 [Pre-warming] Skipped active loading of '{MODEL_NAME}' to conserve VRAM for Chat on boot.")
+
+# -----------------------------
+# ENTRY POINT
+# -----------------------------
+if __name__ == "__main__":
+    print("🌿 Starting PrakritiK AI Vision Server...")
+    # Only pre-warm in the active main process to avoid duplicate runs due to Werkzeug reloader
+    if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not app.debug:
+        pre_warm()
+    app.run(host="0.0.0.0", port=8000, debug=True)
+
+(
+    while true; do
+        if grep -q "warmed up" vision.log 2>/dev/null; then
+            echo "🟢 AI Vision Server: Pre-warmed & Active on Port 8000!"
+            break
+        elif grep -q "Address already in use" vision.log 2>/dev/null; then
+            echo "⚠️ AI Vision Server: Port 8000 is already in use!"
+            break
+        elif grep -q "Error" vision.log 2>/dev/null; then
+            echo "❌ AI Vision Server: Encountered an error during startup!"
+            break
+        fi
+        sleep 1
+    done
+) &
+
+echo "💡 Press Ctrl+C at any time to stop all services."
+echo "--------------------------------------------------------"
 
 # Keep the script running to maintain background jobs
 wait

@@ -4,6 +4,7 @@ PARAMETER temperature 0.25
 PARAMETER top_p 0.9
 PARAMETER repeat_penalty 1.05
 PARAMETER num_ctx 2048
+PARAMETER num_gpu 15
 
 SYSTEM """
 You are Prakriti AI — an eco-intelligent assistant designed to promote sustainability, waste segregation, and responsible tourism in Indian hill towns.
