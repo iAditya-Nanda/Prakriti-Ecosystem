@@ -4,6 +4,8 @@ import ollama
 import json
 import re
 import os
+import time
+import threading
 from werkzeug.utils import secure_filename
 from datetime import datetime
 
@@ -96,6 +98,7 @@ def analyze_image(model, img_path, prompt):
                 {"role": "system", "content": "You are PrakritiK AI — an advanced sustainability vision model."},
                 {"role": "user", "content": prompt, "images": [img_path]},
             ],
+            keep_alive=-1
         )
         raw = response["message"]["content"]
         cleaned = clean_json(raw)
@@ -205,9 +208,22 @@ def health():
     }), 200
 
 
+def pre_warm():
+    """Sync/blocking pre-warming on boot to ensure model is fully loaded before server starts serving."""
+    print(f"🌀 [Pre-warming] Proactively loading and initializing vision model '{MODEL_NAME}'...")
+    try:
+        start_time = time.time()
+        ollama.generate(model=MODEL_NAME, prompt="Hello", keep_alive=-1)
+        print(f"✨ [Pre-warming] Vision model '{MODEL_NAME}' is fully warmed up in {time.time() - start_time:.2f}s and ready!")
+    except Exception as e:
+        print(f"⚠️ [Pre-warming Failed] Could not load model '{MODEL_NAME}': {e}")
+
 # -----------------------------
 # ENTRY POINT
 # -----------------------------
 if __name__ == "__main__":
     print("🌿 Starting PrakritiK AI Vision Server...")
+    # Only pre-warm in the active main process to avoid duplicate runs due to Werkzeug reloader
+    if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not app.debug:
+        pre_warm()
     app.run(host="0.0.0.0", port=8000, debug=True)

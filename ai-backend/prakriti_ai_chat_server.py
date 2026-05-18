@@ -4,6 +4,7 @@ import requests
 import json
 import time
 import sys
+import os
 
 # -----------------------------
 # CONFIGURATION
@@ -23,8 +24,9 @@ chat_history = []
 def build_prompt(user_input: str) -> str:
     """Constructs a natural multi-turn prompt using recent conversation."""
     prompt = (
-        "You are PrakritiK AI — an expert sustainability and waste management assistant. "
+        "You are Prakriti AI — an expert sustainability and waste management assistant. "
         "Provide concise, factual, and eco-conscious guidance. "
+        "Answer in a concise to the point manner. Do not paste long paragraphs"
         "Use warm and natural language, but stay professional.\n\n"
     )
 
@@ -41,7 +43,8 @@ def query_ollama(prompt: str):
     payload = {
         "model": MODEL_NAME,
         "prompt": prompt,
-        "stream": True
+        "stream": True,
+        "keep_alive": -1
     }
 
     response_text = ""
@@ -113,9 +116,28 @@ def health():
     }), 200
 
 
+def pre_warm():
+    """Sync/blocking pre-warming on boot to ensure model is fully loaded before server starts serving."""
+    print(f"🌀 [Pre-warming] Proactively loading and initializing chat model '{MODEL_NAME}'...")
+    try:
+        payload = {
+            "model": MODEL_NAME,
+            "prompt": "Hello",  # Actual prompt to warm up the model completely
+            "stream": False,
+            "keep_alive": -1
+        }
+        start_time = time.time()
+        requests.post(OLLAMA_URL, json=payload, timeout=180)
+        print(f"✨ [Pre-warming] Chat model '{MODEL_NAME}' is fully warmed up in {time.time() - start_time:.2f}s and ready!")
+    except Exception as e:
+        print(f"⚠️ [Pre-warming Failed] Could not load model '{MODEL_NAME}': {e}")
+
 # -----------------------------
 # ENTRY POINT
 # -----------------------------
 if __name__ == "__main__":
     print("🌿 Starting PrakritiK AI Chat API Server...")
+    # Only pre-warm in the active main process to avoid duplicate runs due to Werkzeug reloader
+    if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not app.debug:
+        pre_warm()
     app.run(host="0.0.0.0", port=8001, debug=True)
