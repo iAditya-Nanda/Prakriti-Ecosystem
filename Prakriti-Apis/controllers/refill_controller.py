@@ -3,7 +3,7 @@ from sqlalchemy import Column, Integer, String, Float
 from db import Base, engine, SessionLocal
 
 # -------------------------------------------
-# ✅ RefillStations Table
+# RefillStations Table
 # -------------------------------------------
 class RefillStation(Base):
     __tablename__ = "refill_stations"
@@ -20,7 +20,7 @@ Base.metadata.create_all(bind=engine)
 
 
 # -------------------------------------------
-# ✅ Add a Refill Station
+# Add a Refill Station
 # -------------------------------------------
 def add_refill_station(data):
     required_fields = ["name", "distance", "status", "latitude", "longitude"]
@@ -62,7 +62,7 @@ def add_refill_station(data):
 
 
 # -------------------------------------------
-# ✅ Get all Refill Stations
+# Get all Refill Stations
 # -------------------------------------------
 def get_refill_stations():
     db = SessionLocal()

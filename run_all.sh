@@ -15,6 +15,16 @@ trap cleanup EXIT SIGINT SIGTERM
 
 echo "🚀 Initializing Prakriti Ecosystem..."
 
+# Determine python executable (prefer workspace venv if exists)
+if [ -f "./venv/bin/python3" ]; then
+    PYTHON_EXEC="$(pwd)/venv/bin/python3"
+elif [ -f "./venv/bin/python" ]; then
+    PYTHON_EXEC="$(pwd)/venv/bin/python"
+else
+    PYTHON_EXEC="python3"
+fi
+echo "Using Python executable: $PYTHON_EXEC"
+
 echo "🧹 Cleaning and freeing active ports (5000, 8080, 8000, 8001, 5173)..."
 for port in 5000 8080 8000 8001 5173; do
     fuser -k -n tcp $port 2>/dev/null || true
@@ -23,38 +33,42 @@ sleep 1
 
 # 1. Start Green Points Blockchain (Backend)
 echo "🔗 Starting Green Points Blockchain (Port 5000)..."
-cd greenPoints-local-Blockchain
-python3 -u server.py > ../blockchain.log 2>&1 &
+cd greenpoints-local-blockchain
+"$PYTHON_EXEC" -u server.py > ../blockchain.log 2>&1 &
 cd ..
 
 # 2. Start Prakriti Central API (API)
 echo "🌐 Starting Prakriti Central API (Port 8080)..."
-cd Prakriti-Apis
-python3 -u server.py > ../api.log 2>&1 &
+cd prakriti-apis
+"$PYTHON_EXEC" -u server.py > ../api.log 2>&1 &
 cd ..
 
 # 3. Start AI Vision Server
 echo "👁️ Starting AI Vision Server (Port 8000)..."
 cd ai-backend
-python3 -u prakriti_ai_vision_server.py > ../vision.log 2>&1 &
+"$PYTHON_EXEC" -u prakriti_ai_vision_server.py > ../vision.log 2>&1 &
 cd ..
 
 # 4. Start AI Chat Server
 echo "💬 Starting AI Chat Server (Port 8001)..."
 cd ai-backend
-python3 -u prakriti_ai_chat_server.py > ../chat.log 2>&1 &
+"$PYTHON_EXEC" -u prakriti_ai_chat_server.py > ../chat.log 2>&1 &
 cd ..
 
 # 5. Start Prakriti Dashboard (Web/Electron)
 echo "📊 Starting Prakriti Dashboard (Port 5173)..."
-cd Prakriti-Dashboard
+cd prakriti-dashboard
+if [ ! -d "node_modules" ]; then
+    echo "📦 node_modules not found in prakriti-dashboard. Running npm install..."
+    npm install
+fi
 # Note: If you have a specific 'electron run' command, replace 'npm run dev' below.
 npm run dev > ../dashboard.log 2>&1 &
 cd ..
 
 # 6. Start Prakriti App (Mobile - Optional)
 # echo "📱 Starting Prakriti App (Expo)..."
-# cd Prakriti-App && npx expo start &
+# cd prakriti-app && npx expo start &
 
 echo "✅ All services launched in the background!"
 echo "📄 Logs are being written to: blockchain.log, api.log, vision.log, chat.log, dashboard.log"

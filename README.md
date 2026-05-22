@@ -35,12 +35,12 @@ The repository is organized into five specialized core components:
 
 ```bash
 Codeforge-teamH/
-├── Prakriti-Apis/          # 🐍 Central Flask REST API & MSSQL Integration
-├── Prakriti-App/           # 📱 React Native Mobile App (User & Verifier Interface)
-├── Prakriti-Dashboard/     # 📊 React/Vite Admin Analytics Panel
+├── prakriti-apis/          # 🐍 Central Flask REST API & MSSQL Integration
+├── prakriti-app/           # 📱 React Native Mobile App (User & Verifier Interface)
+├── prakriti-dashboard/     # 📊 React/Vite Admin Analytics Panel
 ├── ai-backend/             # 🤖 Ollama-powered Vision & Chat API Servers
-├── greenPoints-local-Blockchain/ # 🧱 Custom Python PoW Blockchain Implementation
-└── greenpoints-local/      # 📂 Local media & upload repository
+├── greenpoints-local-blockchain/ # 🧱 Custom Python PoW Blockchain Implementation
+├── greenpoints-local/      # 📂 Local media & upload repository
 ```
 
 ---

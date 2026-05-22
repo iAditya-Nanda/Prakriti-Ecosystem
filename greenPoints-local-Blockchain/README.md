@@ -61,7 +61,7 @@ greenpoints-local/
 
 1. Clone or navigate to the project directory:
 ```bash
-cd /home/kenx1kaneki/Desktop/greenPoints-local-Blockchain
+cd greenpoints-local-blockchain
 ```
 
 2. Make scripts executable (optional):

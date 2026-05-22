@@ -3,7 +3,7 @@ from sqlalchemy import Column, Integer, String
 from db import Base, engine, SessionLocal
 
 # -------------------------------------------
-# ✅ Verifier Table
+# Verifier Table
 # -------------------------------------------
 class Verifier(Base):
     __tablename__ = "verifiers"
@@ -18,7 +18,7 @@ Base.metadata.create_all(bind=engine)
 
 
 # -------------------------------------------
-# ✅ Get Verifier Dashboard
+# Get Verifier Dashboard
 # -------------------------------------------
 def get_verifier_dashboard(verifier_id: int):
     db = SessionLocal()
@@ -48,7 +48,7 @@ def get_verifier_dashboard(verifier_id: int):
 
 
 # -------------------------------------------
-# ✅ Upsert Verifier (ID Required)
+# Upsert Verifier (ID Required)
 # -------------------------------------------
 def upsert_verifier(data):
     db = SessionLocal()

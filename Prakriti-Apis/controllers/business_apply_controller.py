@@ -15,7 +15,7 @@ def allowed_file(filename):
 
 
 # -------------------------------------------
-# ✅ Green Stamp Applications Table
+# Green Stamp Applications Table
 # -------------------------------------------
 class BusinessApplication(Base):
     __tablename__ = "business_applications"
@@ -32,7 +32,7 @@ Base.metadata.create_all(bind=engine)
 
 
 # -------------------------------------------
-# ✅ POST /api/v1/business/apply
+# POST /api/v1/business/apply
 # -------------------------------------------
 def submit_application():
     db = SessionLocal()
@@ -95,7 +95,7 @@ def submit_application():
 
 
 # -------------------------------------------
-# ✅ GET /api/v1/business/applications/<business_id>
+# GET /api/v1/business/applications/<business_id>
 # -------------------------------------------
 def get_applications_by_business(business_id):
     db = SessionLocal()
@@ -121,7 +121,7 @@ def get_applications_by_business(business_id):
 
 
 # -------------------------------------------
-# ✅ GET /api/v1/business/applications  (NEW)
+# GET /api/v1/business/applications  (NEW)
 # Get ALL applications (for Verifiers/Admins)
 # -------------------------------------------
 def get_all_applications():

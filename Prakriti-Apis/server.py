@@ -11,11 +11,11 @@ from routes.qr_routes import qr_bp
 from routes.verifier_routes import verifier_bp
 from routes.tourist_submission_routes import submissions_bp
 
-print("🚀 Initializing Prakriti Server...")
+print("Initializing Prakriti Server...")
 app = Flask(__name__)
-print("✅ Flask app created.")
+print("Flask app created.")
 CORS(app)
-print("✅ CORS initialized.")
+print("CORS initialized.")
 
 # Register routes
 app.register_blueprint(auth_bp, url_prefix="/api/v1/auth")
@@ -31,7 +31,7 @@ app.register_blueprint(submissions_bp, url_prefix="/api/v1/submissions")
 
 @app.route("/")
 def home():
-    return {"message": "Prakriti API is running 🚀"}
+    return {"message": "Prakriti API is running"}
 
 @app.route("/api/v1/dashboard/stats")
 def dashboard_stats():
@@ -69,5 +69,14 @@ def dashboard_stats():
         db.close()
 
 if __name__ == "__main__":
+    from db import IS_SQLITE
+    if IS_SQLITE:
+        print("SQLite database fallback active. Initializing self-healing database seeder...")
+        try:
+            from seed import seed
+            seed()
+        except Exception as seed_err:
+            print(f"Self-healing database seeder failed: {seed_err}")
+            
     app.run(host="0.0.0.0", port=8080, debug=True)
 

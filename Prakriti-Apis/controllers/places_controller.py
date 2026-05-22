@@ -4,7 +4,7 @@ from db import Base, engine, SessionLocal
 import json
 
 # -------------------------------------------
-# ✅ Places Table
+# Places Table
 # -------------------------------------------
 class Place(Base):
     __tablename__ = "places"
@@ -23,7 +23,7 @@ Base.metadata.create_all(bind=engine)
 
 
 # -------------------------------------------
-# ✅ Add Place
+# Add Place
 # -------------------------------------------
 def add_place(data):
     required_fields = ["name", "distance", "type", "level", "tags", "latitude", "longitude"]
@@ -69,7 +69,7 @@ def add_place(data):
 
 
 # -------------------------------------------
-# ✅ Get All Places
+# Get All Places
 # -------------------------------------------
 def get_all_places():
     db = SessionLocal()

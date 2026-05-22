@@ -63,7 +63,7 @@ const VerifierDetailScreen = ({ route, navigation }) => {
           {/* Submission Info Card */}
           <View style={styles.card}>
             {submission.image ? (
-              <Image source={{ uri: SERVER + submission.image }} style={styles.image} />
+              <Image source={{ uri: submission.image.startsWith("http") ? submission.image : (SERVER + submission.image) }} style={styles.image} />
             ) : (
               <View style={styles.noImageFrame}>
                 <MaterialCommunityIcons name="image-off" size={48} color="#D8DFDC" />

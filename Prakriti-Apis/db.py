@@ -4,12 +4,12 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from dotenv import load_dotenv
 
 # -------------------------------------------
-# ✅ Load environment variables
+# Load environment variables
 # -------------------------------------------
 load_dotenv()
 
 # -------------------------------------------
-# 🐘 PostgreSQL Connection
+# PostgreSQL Connection
 # -------------------------------------------
 
 # Check for full DATABASE_URL first (e.g., from Supabase or Railway)
@@ -25,26 +25,27 @@ if not DATABASE_URL:
 
     DATABASE_URL = f"postgresql+psycopg2://{pg_user}:{pg_pass}@{pg_host}:{pg_port}/{pg_db}"
 
-# -------------------------------------------
-# ✅ SQLAlchemy Engine and Session Setup
-# -------------------------------------------
+IS_SQLITE = False
+
 try:
     engine = create_engine(DATABASE_URL, echo=False, future=True, pool_pre_ping=True)
     # Quick connection test
     with engine.connect() as conn:
         conn.execute(text("SELECT 1"))
-    print("✅ Connected to PostgreSQL successfully!")
+    print("Connected to PostgreSQL successfully!")
 except Exception as e:
-    print(f"❌ PostgreSQL connection failed: {e}")
-    print("⚠️  Please ensure PostgreSQL is running and the 'prakriti' database exists.")
-    print("   To create it: psql -U postgres -c 'CREATE DATABASE prakriti;'")
-    raise SystemExit(1)
+    print(f"PostgreSQL connection failed: {e}")
+    print("Warning: PostgreSQL is offline. Falling back to local SQLite database (prakriti.db)...")
+    
+    # Use SQLite engine setup with check_same_thread=False for multithreaded Flask execution
+    engine = create_engine("sqlite:///prakriti.db", echo=False, future=True, connect_args={"check_same_thread": False})
+    IS_SQLITE = True
 
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 Base = declarative_base()
 
 # -------------------------------------------
-# ✅ Optional: quick test when run directly
+# Optional: quick test when run directly
 # -------------------------------------------
 if __name__ == "__main__":
     try:

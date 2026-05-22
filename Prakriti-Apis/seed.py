@@ -1,5 +1,5 @@
 """
-🌱 Prakriti Database Seeder
+Prakriti Database Seeder
 Seeds the PostgreSQL database with essential demo/default data
 for all modules to work together.
 """
@@ -36,9 +36,9 @@ def seed():
             ]
             db.add_all(users)
             db.commit()
-            print(f"✅ Seeded {len(users)} users")
+            print(f"Seeded {len(users)} users")
         else:
-            print(f"⏭️  Users already seeded ({existing} found)")
+            print(f"Users already seeded ({existing} found)")
 
         # =============================================
         # 2. SEED BUSINESSES
@@ -52,9 +52,9 @@ def seed():
             ]
             db.add_all(businesses)
             db.commit()
-            print(f"✅ Seeded {len(businesses)} businesses")
+            print(f"Seeded {len(businesses)} businesses")
         else:
-            print(f"⏭️  Businesses already seeded ({existing} found)")
+            print(f"Businesses already seeded ({existing} found)")
 
         # =============================================
         # 3. SEED REFILL STATIONS
@@ -70,9 +70,9 @@ def seed():
             ]
             db.add_all(stations)
             db.commit()
-            print(f"✅ Seeded {len(stations)} refill stations")
+            print(f"Seeded {len(stations)} refill stations")
         else:
-            print(f"⏭️  Refill stations already seeded ({existing} found)")
+            print(f"Refill stations already seeded ({existing} found)")
 
         # =============================================
         # 4. SEED COMPOST POINTS
@@ -86,9 +86,9 @@ def seed():
             ]
             db.add_all(compost)
             db.commit()
-            print(f"✅ Seeded {len(compost)} compost points")
+            print(f"Seeded {len(compost)} compost points")
         else:
-            print(f"⏭️  Compost points already seeded ({existing} found)")
+            print(f"Compost points already seeded ({existing} found)")
 
         # =============================================
         # 5. SEED PLACES
@@ -104,9 +104,9 @@ def seed():
             ]
             db.add_all(places)
             db.commit()
-            print(f"✅ Seeded {len(places)} places")
+            print(f"Seeded {len(places)} places")
         else:
-            print(f"⏭️  Places already seeded ({existing} found)")
+            print(f"Places already seeded ({existing} found)")
 
         # =============================================
         # 6. SEED VERIFIERS
@@ -120,9 +120,9 @@ def seed():
             ]
             db.add_all(verifiers)
             db.commit()
-            print(f"✅ Seeded {len(verifiers)} verifiers")
+            print(f"Seeded {len(verifiers)} verifiers")
         else:
-            print(f"⏭️  Verifiers already seeded ({existing} found)")
+            print(f"Verifiers already seeded ({existing} found)")
 
         # =============================================
         # 7. SEED HISTORY for demo users
@@ -139,14 +139,14 @@ def seed():
             ]
             db.add_all(history_entries)
             db.commit()
-            print(f"✅ Seeded {len(history_entries)} history entries")
+            print(f"Seeded {len(history_entries)} history entries")
         else:
-            print(f"⏭️  History already seeded ({existing} found)")
+            print(f"History already seeded ({existing} found)")
 
-        print("\n🌿 Database seeding complete!")
+        print("\nDatabase seeding complete!")
         
         # Summary
-        print("\n📊 Database Summary:")
+        print("\nDatabase Summary:")
         print(f"   Users:           {db.query(User).count()}")
         print(f"   Businesses:      {db.query(Business).count()}")
         print(f"   Refill Stations: {db.query(RefillStation).count()}")
@@ -157,7 +157,7 @@ def seed():
 
     except Exception as e:
         db.rollback()
-        print(f"❌ Seeding failed: {e}")
+        print(f"Seeding failed: {e}")
         raise
     finally:
         db.close()

@@ -25,9 +25,9 @@ class User(Base):
 # Create table if not exist
 try:
     Base.metadata.create_all(bind=engine)
-    print("✅ Database tables verified/created successfully.")
+    print("Database tables verified/created successfully.")
 except Exception as e:
-    print(f"⚠️ Warning: Database connection failed. Working in Master Login mode only. Error: {e}")
+    print(f"Warning: Database connection failed. Working in Master Login mode only. Error: {e}")
 
 # -------------------------------------------
 # Signup Function
@@ -76,9 +76,9 @@ def signup_user(data):
             res_data = blockchain_res.json()
             if res_data.get("success"):
                 blockchain_wallet = res_data.get("data", {}).get("wallet_address")
-                print(f"🔗 Blockchain Synced! Wallet Address: {blockchain_wallet}")
+                print(f"Blockchain Synced! Wallet Address: {blockchain_wallet}")
         except Exception as blockchain_err:
-            print(f"⚠️ Warning: Failed to sync user wallet with blockchain: {blockchain_err}")
+            print(f"Warning: Failed to sync user wallet with blockchain: {blockchain_err}")
 
         return jsonify({
             "message": "Signup successful",
@@ -160,7 +160,7 @@ def login_user(data):
             blockchain_wallet = res_data.get("data", {}).get("wallet_address")
             blockchain_balance = res_data.get("data", {}).get("balance", 0)
     except Exception as blockchain_err:
-        print(f"⚠️ Warning: Failed to fetch blockchain details on login: {blockchain_err}")
+        print(f"Warning: Failed to fetch blockchain details on login: {blockchain_err}")
 
     return jsonify({
         "message": "Login successful",
@@ -219,7 +219,7 @@ def get_profile_by_id(user_id):
                 blockchain_wallet = res_data.get("data", {}).get("wallet_address")
                 blockchain_balance = res_data.get("data", {}).get("balance", 0)
         except Exception as blockchain_err:
-            print(f"⚠️ Warning: Failed to fetch blockchain details: {blockchain_err}")
+            print(f"Warning: Failed to fetch blockchain details: {blockchain_err}")
             
         return jsonify({
             "success": True,

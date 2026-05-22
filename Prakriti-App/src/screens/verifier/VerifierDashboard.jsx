@@ -75,7 +75,15 @@ const VerifierDashboard = ({ navigation }) => {
     );
   }
 
-  const { name, pendingVerifications, approvedActions, rejectedItems } = verifier;
+  // Handle both standard database verifier keys and master bypass verifier keys (verifierName, verifiedCount, pendingCount)
+  const name = verifier.name || verifier.verifierName || "Verifier";
+  const pendingVerifications = verifier.pendingVerifications !== undefined 
+    ? verifier.pendingVerifications 
+    : (verifier.pendingCount !== undefined ? verifier.pendingCount : 0);
+  const approvedActions = verifier.approvedActions !== undefined 
+    ? verifier.approvedActions 
+    : (verifier.verifiedCount !== undefined ? verifier.verifiedCount : 0);
+  const rejectedItems = verifier.rejectedItems !== undefined ? verifier.rejectedItems : 0;
 
   const metrics = [
     { label: "Pending Verifications", value: pendingVerifications, icon: "clipboard-clock-outline", color: "#B58B00", bg: "#FFF9E6" },

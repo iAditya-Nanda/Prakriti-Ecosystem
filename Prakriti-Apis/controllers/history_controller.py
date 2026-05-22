@@ -4,7 +4,7 @@ from datetime import datetime
 from db import Base, engine, SessionLocal
 
 # -------------------------------------------
-# ✅ History Table (with user_id)
+# History Table (with user_id)
 # -------------------------------------------
 class History(Base):
     __tablename__ = "history"
@@ -23,7 +23,7 @@ Base.metadata.create_all(bind=engine)
 
 
 # -------------------------------------------
-# ✅ Add new history entry for a user
+# Add new history entry for a user
 # -------------------------------------------
 def add_history(data):
     required_fields = ["user_id", "type", "title", "location", "points", "time"]
@@ -66,7 +66,7 @@ def add_history(data):
 
 
 # -------------------------------------------
-# ✅ Get all history records for a specific user
+# Get all history records for a specific user
 # -------------------------------------------
 def get_history_by_user(user_id):
     db = SessionLocal()

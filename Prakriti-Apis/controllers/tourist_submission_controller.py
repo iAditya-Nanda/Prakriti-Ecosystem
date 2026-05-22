@@ -7,7 +7,7 @@ from sqlalchemy import Column, Integer, String, DateTime, CheckConstraint, Forei
 from db import Base, engine, SessionLocal
 
 # -------------------------------------------
-# ⚙️ Upload Config
+# Upload Config
 # -------------------------------------------
 UPLOAD_FOLDER = os.path.join(os.getcwd(), "uploads")
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "gif"}
@@ -18,7 +18,7 @@ def allowed_file(filename: str) -> bool:
 
 
 # -------------------------------------------
-# 🧾 Tourist Submissions Table
+# Tourist Submissions Table
 # -------------------------------------------
 class TouristSubmission(Base):
     __tablename__ = "tourist_submissions"
@@ -42,7 +42,7 @@ class TouristSubmission(Base):
 
 
 # -------------------------------------------
-# 🧮 User Points Table
+# User Points Table
 # -------------------------------------------
 class UserPoints(Base):
     __tablename__ = "user_points"
@@ -59,7 +59,7 @@ Base.metadata.create_all(bind=engine)
 
 
 # -------------------------------------------
-# 📤 Upload Image
+# Upload Image
 # -------------------------------------------
 def upload_submission_image():
     if "file" not in request.files:
@@ -87,7 +87,7 @@ def upload_submission_image():
 
 
 # -------------------------------------------
-# ➕ Add Tourist Submission
+# Add Tourist Submission
 # -------------------------------------------
 def add_tourist_submission(data: dict):
     for f in ["user_id", "title", "location"]:
@@ -127,7 +127,7 @@ def add_tourist_submission(data: dict):
 
 
 # -------------------------------------------
-# 📋 Get All Submissions
+# Get All Submissions
 # -------------------------------------------
 def get_all_tourist_submissions():
     status = (request.args.get("status") or "").strip().lower()
@@ -182,7 +182,7 @@ def get_all_tourist_submissions():
 
 
 # -------------------------------------------
-# ✅ Approve/Reject Submission + Award Points
+# Approve/Reject Submission + Award Points
 # -------------------------------------------
 def review_submission(submission_id: int, data: dict):
     action = (data.get("action") or "").lower()
@@ -200,7 +200,7 @@ def review_submission(submission_id: int, data: dict):
         sub.reviewer_id = data.get("reviewer_id")
         sub.remarks = data.get("remarks")
 
-        # ✅ if approved → give random 0–10 points
+        # if approved → give random 0–10 points
         points_awarded = None
         if sub.status == "approved":
             points_awarded = random.randint(0, 10)

@@ -17,7 +17,7 @@ def apply_stamp():
 def get_apps(business_id):
     return get_applications_by_business(business_id)
 
-# ✅ NEW: GET /api/v1/business/applications
+# NEW: GET /api/v1/business/applications
 @business_apply_bp.route("/applications", methods=["GET"])
 def get_all_apps():
     return get_all_applications()

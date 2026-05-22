@@ -1,14 +1,9 @@
-"""
-Database Schema and Integration for Green Points Blockchain
-PostgreSQL database for user management synced with blockchain
-Only USER and BUSINESS roles - Users earn GP, Businesses issue rewards
-"""
-
 import os
 import json
 import time
 import psycopg2
 import psycopg2.extras
+import sqlite3
 from typing import Optional, Dict, List, Tuple
 from enum import Enum
 from dotenv import load_dotenv
@@ -22,8 +17,63 @@ class UserRole(Enum):
     BUSINESS = "business"  # Businesses that issue rewards via QR codes
 
 
+class SQLiteCursorWrapper:
+    """Wrapper around sqlite3.Cursor to mimic psycopg2 interface and translate SQL dialects"""
+    def __init__(self, sqlite_cursor):
+        self.cursor = sqlite_cursor
+        self.last_inserted_id = None
+
+    def execute(self, sql, params=None):
+        # Translate PostgreSQL parameter placeholder %s to SQLite ?
+        if params:
+            sql = sql.replace("%s", "?")
+            
+        # Translate SERIAL PRIMARY KEY to INTEGER PRIMARY KEY AUTOINCREMENT
+        if "SERIAL PRIMARY KEY" in sql:
+            sql = sql.replace("SERIAL PRIMARY KEY", "INTEGER PRIMARY KEY AUTOINCREMENT")
+            
+        # Translate DOUBLE PRECISION to REAL
+        if "DOUBLE PRECISION" in sql:
+            sql = sql.replace("DOUBLE PRECISION", "REAL")
+            
+        # Handle RETURNING id / RETURNING statement
+        returning_match = False
+        if "RETURNING id" in sql or "RETURNING" in sql:
+            sql = sql.replace("RETURNING id", "").replace("RETURNING", "").strip()
+            returning_match = True
+            
+        # Run standard execute
+        if params is not None:
+            self.cursor.execute(sql, params)
+        else:
+            self.cursor.execute(sql)
+            
+        if returning_match:
+            self.last_inserted_id = self.cursor.lastrowid
+            
+    def fetchone(self):
+        if self.last_inserted_id is not None:
+            val = (self.last_inserted_id,)
+            self.last_inserted_id = None
+            return val
+        row = self.cursor.fetchone()
+        if row is not None:
+            return row
+        return None
+        
+    def fetchall(self):
+        return self.cursor.fetchall()
+        
+    @property
+    def rowcount(self):
+        return self.cursor.rowcount
+        
+    def close(self):
+        self.cursor.close()
+
+
 class Database:
-    """Handles all database operations using PostgreSQL"""
+    """Handles all database operations using PostgreSQL with local SQLite fallback"""
     
     def __init__(self, db_name: str = None):
         """
@@ -32,6 +82,7 @@ class Database:
         when DATABASE_URL or individual POSTGRES_* env vars are set.
         """
         self.conn = None
+        self.is_sqlite = False
         self.initialize_database()
     
     def _get_connection_params(self) -> dict:
@@ -51,17 +102,39 @@ class Database:
             "password": os.getenv("POSTGRES_PASSWORD", "postgres"),
         }
 
+    def cursor(self):
+        """Returns a psycopg2 or custom SQLite cursor wrapper"""
+        if self.is_sqlite:
+            return SQLiteCursorWrapper(self.conn.cursor())
+        return self.conn.cursor()
+
+    def _dict_cursor(self):
+        """Return a cursor that returns rows as dictionaries"""
+        if self.is_sqlite:
+            return SQLiteCursorWrapper(self.conn.cursor())
+        return self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
     def initialize_database(self):
         """Create database tables if they don't exist"""
-        params = self._get_connection_params()
+        try:
+            params = self._get_connection_params()
+            if "dsn" in params:
+                self.conn = psycopg2.connect(params["dsn"])
+            else:
+                self.conn = psycopg2.connect(**params)
+            self.conn.autocommit = False
+            print("✓ Blockchain database (PostgreSQL) initialized successfully")
+        except Exception as e:
+            print(f"Warning: PostgreSQL connection failed: {e}")
+            print("Warning: Falling back to local SQLite database (greenpoints_local.db)...")
+            self.is_sqlite = True
+            # Database saved in local folder
+            self.conn = sqlite3.connect("greenpoints_local.db")
+            self.conn.row_factory = sqlite3.Row
+            # Enable foreign key support in SQLite
+            self.conn.execute("PRAGMA foreign_keys = ON")
         
-        if "dsn" in params:
-            self.conn = psycopg2.connect(params["dsn"])
-        else:
-            self.conn = psycopg2.connect(**params)
-        
-        self.conn.autocommit = False
-        cursor = self.conn.cursor()
+        cursor = self.cursor()
         
         # Users table - synced with blockchain wallets
         cursor.execute("""
@@ -137,11 +210,7 @@ class Database:
         """)
         
         self.conn.commit()
-        print("✓ Blockchain database (PostgreSQL) initialized successfully")
-    
-    def _dict_cursor(self):
-        """Return a cursor that returns rows as dictionaries"""
-        return self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        print("✓ Blockchain database initialized successfully")
     
     def create_user(self, name: str, email: Optional[str], phone: Optional[str], 
                    role: str, wallet_address: str) -> Optional[int]:
@@ -166,7 +235,7 @@ class Database:
             print(f"Error: Invalid role '{role}'")
             return None
         
-        cursor = self.conn.cursor()
+        cursor = self.cursor()
         try:
             cursor.execute("""
                 INSERT INTO bc_users (name, email, phone, role, wallet_address, created_at)
@@ -179,7 +248,7 @@ class Database:
             print(f"✓ User created: {name} (ID: {user_id}, Role: {role})")
             return user_id
         
-        except psycopg2.IntegrityError as e:
+        except (psycopg2.IntegrityError, sqlite3.IntegrityError) as e:
             self.conn.rollback()
             print(f"Error creating user: {e}")
             return None
@@ -225,7 +294,7 @@ class Database:
                        qr_code: str, service_description: str = "",
                        expires_in_hours: Optional[int] = None) -> Optional[int]:
         """Create a QR code for business reward"""
-        cursor = self.conn.cursor()
+        cursor = self.cursor()
         
         # Get business name
         business = self.get_user_by_id(business_id)
@@ -250,7 +319,7 @@ class Database:
             self.conn.commit()
             return qr_id
         
-        except psycopg2.IntegrityError:
+        except (psycopg2.IntegrityError, sqlite3.IntegrityError):
             self.conn.rollback()
             print("Error: QR code already exists")
             return None
@@ -284,7 +353,7 @@ class Database:
     
     def use_qr_code(self, qr_code: str, user_id: int, transaction_id: str) -> bool:
         """Mark QR code as used"""
-        cursor = self.conn.cursor()
+        cursor = self.cursor()
         cursor.execute("""
             UPDATE bc_qr_codes 
             SET is_used = 1, used_by = %s, used_at = %s, transaction_id = %s
@@ -301,7 +370,7 @@ class Database:
                           longitude: Optional[float] = None,
                           metadata: Dict = None) -> Optional[int]:
         """Submit a task for verification"""
-        cursor = self.conn.cursor()
+        cursor = self.cursor()
         
         metadata_json = json.dumps(metadata or {})
         
@@ -346,7 +415,7 @@ class Database:
     def approve_verification(self, verification_id: int, verified_by: str, 
                             transaction_id: str) -> bool:
         """Approve a verification request"""
-        cursor = self.conn.cursor()
+        cursor = self.cursor()
         cursor.execute("""
             UPDATE bc_pending_verifications
             SET status = 'approved', verified_at = %s, verified_by = %s, transaction_id = %s
@@ -359,7 +428,7 @@ class Database:
     def reject_verification(self, verification_id: int, verified_by: str, 
                            reason: str) -> bool:
         """Reject a verification request"""
-        cursor = self.conn.cursor()
+        cursor = self.cursor()
         cursor.execute("""
             UPDATE bc_pending_verifications
             SET status = 'rejected', verified_at = %s, verified_by = %s, rejection_reason = %s
@@ -372,7 +441,7 @@ class Database:
     def update_leaderboard_cache(self, user_id: int, name: str, total_gp: float, 
                                 tasks_completed: int):
         """Update leaderboard cache for a user"""
-        cursor = self.conn.cursor()
+        cursor = self.cursor()
         cursor.execute("""
             INSERT INTO bc_leaderboard_cache 
             (user_id, name, total_gp, tasks_completed, last_updated)

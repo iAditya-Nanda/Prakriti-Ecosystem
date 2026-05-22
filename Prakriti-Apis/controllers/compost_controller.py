@@ -3,7 +3,7 @@ from sqlalchemy import Column, Integer, String, Float
 from db import Base, engine, SessionLocal
 
 # -------------------------------------------
-# ✅ CompostPoints Table
+# CompostPoints Table
 # -------------------------------------------
 class CompostPoint(Base):
     __tablename__ = "compost_points"
@@ -20,7 +20,7 @@ Base.metadata.create_all(bind=engine)
 
 
 # -------------------------------------------
-# ✅ Add Compost Point
+# Add Compost Point
 # -------------------------------------------
 def add_compost_point(data):
     required_fields = ["name", "distance", "benefit", "latitude", "longitude"]
@@ -62,7 +62,7 @@ def add_compost_point(data):
 
 
 # -------------------------------------------
-# ✅ Get All Compost Points
+# Get All Compost Points
 # -------------------------------------------
 def get_compost_points():
     db = SessionLocal()

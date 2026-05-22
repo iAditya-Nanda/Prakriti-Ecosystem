@@ -6,7 +6,7 @@ from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from db import Base, engine, SessionLocal
 
 # -------------------------------------------
-# ✅ QR Table
+# QR Table
 # -------------------------------------------
 class BusinessQR(Base):
     __tablename__ = "business_qr"
@@ -25,7 +25,7 @@ Base.metadata.create_all(bind=engine)
 
 
 # -------------------------------------------
-# ✅ Generate New QR for a Business
+# Generate New QR for a Business
 # -------------------------------------------
 def generate_qr():
     db = SessionLocal()
@@ -59,7 +59,7 @@ def generate_qr():
                 }
                 requests.post("http://localhost:5000/api/qr/generate", json=blockchain_payload, timeout=2.0)
         except Exception as blockchain_err:
-            print(f"⚠️ Warning: Failed to sync generated QR on blockchain: {blockchain_err}")
+            print(f"Warning: Failed to sync generated QR on blockchain: {blockchain_err}")
 
         return jsonify({
             "message": "QR generated successfully",
@@ -79,7 +79,7 @@ def generate_qr():
 
 
 # -------------------------------------------
-# ✅ Check QR Status (for refresh every 2–3s)
+# Check QR Status (for refresh every 2–3s)
 # -------------------------------------------
 def check_qr_status(qr_id):
     db = SessionLocal()
@@ -102,7 +102,7 @@ def check_qr_status(qr_id):
 
 
 # -------------------------------------------
-# ✅ Mark QR as Scanned + Reward Points
+# Mark QR as Scanned + Reward Points
 # -------------------------------------------
 def mark_qr_scanned():
     db = SessionLocal()
@@ -156,7 +156,7 @@ def mark_qr_scanned():
                     # We can use the reward amount defined on the blockchain!
                     blockchain_points = res_data.get("data", {}).get("amount", points)
             except Exception as blockchain_err:
-                print(f"⚠️ Warning: Failed to scan QR on blockchain: {blockchain_err}")
+                print(f"Warning: Failed to scan QR on blockchain: {blockchain_err}")
                 
         qr.points_awarded = blockchain_points or points
         qr.scanned_at = datetime.utcnow()

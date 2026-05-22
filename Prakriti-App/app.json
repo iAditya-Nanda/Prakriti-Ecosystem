@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Prakriti-App",
-    "slug": "Prakriti-App",
+    "name": "prakriti-app",
+    "slug": "prakriti-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/prakriti.png",
