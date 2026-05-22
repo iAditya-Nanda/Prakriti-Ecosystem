@@ -14,7 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-const SERVER_IP = "http://100.111.171.19:8080";
+import { SERVER_IP } from "../../config";
 
 const CompostPointsScreen = ({ navigation }) => {
   const [view, setView] = useState("map"); // map | list

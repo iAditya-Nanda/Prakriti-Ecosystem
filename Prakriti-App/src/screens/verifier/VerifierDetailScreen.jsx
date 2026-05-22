@@ -14,7 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
-const SERVER = "http://100.111.171.19:8080";
+import { SERVER } from "../../config";
 
 const VerifierDetailScreen = ({ route, navigation }) => {
   const { submission } = route.params;

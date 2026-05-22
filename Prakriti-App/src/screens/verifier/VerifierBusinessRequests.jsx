@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-const SERVER = "http://100.111.171.19:8080";
+import { SERVER } from "../../config";
 
 const VerifierBusinessRequests = ({ navigation }) => {
   const [loading, setLoading] = useState(true);

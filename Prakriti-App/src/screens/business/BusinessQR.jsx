@@ -15,7 +15,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import QRCode from "react-native-qrcode-svg";
 
-const SERVER = "http://100.111.171.19:8080";
+import { SERVER } from "../../config";
 
 const BusinessQR = ({ navigation }) => {
   const [mode, setMode] = useState("refill");

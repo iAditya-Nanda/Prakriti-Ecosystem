@@ -14,7 +14,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-const SERVER = "http://100.111.171.19:8080";
+import { SERVER } from "../../config";
 
 const VerifierDashboard = ({ navigation }) => {
   const [loading, setLoading] = useState(true);

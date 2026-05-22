@@ -17,8 +17,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-const { width } = Dimensions.get("window");
-const SERVER_IP = "http://100.111.171.19:8080";
+import { SERVER_IP } from "../../config";
 
 const BusinessDashboard = ({ navigation }) => {
   const [loading, setLoading] = useState(true);

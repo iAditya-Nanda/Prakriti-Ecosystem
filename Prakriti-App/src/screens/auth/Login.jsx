@@ -19,8 +19,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Svg, { Path, Ellipse } from "react-native-svg";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
+import { API_URL } from "../../config";
+
 const { width, height } = Dimensions.get("window");
-const API_URL = "http://100.111.171.19:8080/api/v1/auth/login";
 
 const Login = ({ navigation }) => {
   const [role, setRole] = useState("user");

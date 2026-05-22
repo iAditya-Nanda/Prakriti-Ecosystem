@@ -18,10 +18,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-const SERVER_IP = "http://100.111.171.19";
-const CHAT_URL = `${SERVER_IP}:8001/chat`;
-const CLEAR_URL = `${SERVER_IP}:8001/clear_history`;
-const ANALYZE_URL = `${SERVER_IP}:8000/analyze`;
+import { CHAT_URL, CLEAR_URL, ANALYZE_URL } from "../../config";
 
 const AIChatThreadScreen = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();

@@ -18,7 +18,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
-const SERVER = "http://100.111.171.19:8080";
+import { SERVER } from "../../config";
 
 const BusinessApplyStamp = ({ navigation }) => {
   const [photos, setPhotos] = useState([]);
