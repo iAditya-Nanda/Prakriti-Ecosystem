@@ -1,0 +1,8 @@
+flask
+flask-cors
+uvicorn
+sqlalchemy
+
+python-dotenv
+werkzeug
+pyjwt
