@@ -94,10 +94,10 @@ Create and build the custom models in Ollama:
 
 ```bash
 # Build the Chat Model
-ollama create prakriti-chat -f ./modalfles/chat.modelfile
+ollama create prakriti-chat -f ./modelfles/chat.modelfile
 
 # Build the Vision Model
-ollama create prakriti-vision -f ./modalfles/vision.modelfile
+ollama create prakriti-vision -f ./modelfles/vision.modelfile
 ```
 
 ### 2. Backend API Setup
