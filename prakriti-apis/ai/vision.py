@@ -21,6 +21,8 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 ai_vision_bp = Blueprint('ai_vision', __name__)
 CORS(ai_vision_bp)
 
+from utils.security import token_required
+
 # -------------------------------------------------
 # PROMPTS (same as original)
 # -------------------------------------------------
@@ -190,6 +192,7 @@ def logic_layer(result):
 # ROUTES
 # -------------------------------------------------
 @ai_vision_bp.route("/analyze", methods=["POST"])
+@token_required
 def analyze():
     """Endpoint that accepts a captured image and an optional disposal‑proof image.
     The proof image is stored for audit purposes but does not affect the classification logic.
@@ -230,6 +233,7 @@ def analyze():
     return jsonify(response), 200
 
 @ai_vision_bp.route("/detect_litter", methods=["POST"])
+@token_required
 def detect_litter():
     if "image" not in request.files:
         return jsonify({"error": "No image file provided"}), 400

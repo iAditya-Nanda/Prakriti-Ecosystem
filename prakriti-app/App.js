@@ -44,6 +44,7 @@ import VerifierQueueScreen from "./src/screens/verifier/VerifierQueueScreen";
 import VerifierBusinessRequests from "./src/screens/verifier/VerifierBusinessRequests";
 import VerifierRequestDetail from "./src/screens/verifier/VerifierRequestDetail";
 import VerifierReports from "./src/screens/verifier/VerifierReports";
+import VerifierProfile from "./src/screens/verifier/verifier-profile";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -173,6 +174,7 @@ export default function App() {
                     <Stack.Screen name="VerifierBusinessRequests" component={VerifierBusinessRequests} options={{ headerShown: false }} />
                     <Stack.Screen name="VerifierRequestDetail" component={VerifierRequestDetail} options={{ headerShown: false }} />
                     <Stack.Screen name="VerifierReports" component={VerifierReports} options={{ headerShown: false }} />
+                    <Stack.Screen name="VerifierProfile" component={VerifierProfile} options={{ headerShown: false }} />
                 </Stack.Navigator>
             </NavigationContainer>
         </GestureHandlerRootView>

@@ -105,8 +105,15 @@ const ReportLitterScreen = ({ navigation }) => {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 120000);
 
+      const token = await AsyncStorage.getItem("prakriti_token");
+      const headers = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const res = await fetch(DETECT_URL, {
         method: "POST",
+        headers,
         body: fd,
         signal: controller.signal,
       });

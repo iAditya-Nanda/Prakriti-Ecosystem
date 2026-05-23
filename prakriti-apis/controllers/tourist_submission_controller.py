@@ -308,7 +308,7 @@ def review_submission(submission_id: int, data: dict):
                     new_bc_verification.transaction_id = tx_id
                     blockchain_tx = tx_id
                     
-                    # Mine block to confirm transaction immediately
+                    # Confirm block to register transaction immediately
                     blockchain_engine.mine_pending_transactions(db, "SYSTEM")
                     print(f"Success: Blockchain reward processed. Tx: {blockchain_tx}")
                 except Exception as bc_err:

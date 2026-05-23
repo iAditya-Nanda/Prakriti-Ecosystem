@@ -191,8 +191,15 @@ const HowToDisposeScreen = ({ navigation }) => {
     const timer = setTimeout(() => ctrl.abort(), 120_000);
 
     try {
+      const token = await AsyncStorage.getItem("prakriti_token");
+      const headers = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const res = await fetch(ANALYZER_URL, {
         method: "POST",
+        headers,
         body: fd,
         signal: ctrl.signal,
       });
