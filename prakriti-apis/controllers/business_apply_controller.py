@@ -163,3 +163,55 @@ def get_all_applications():
         return jsonify({"error": str(e)}), 500
     finally:
         db.close()
+
+
+# -------------------------------------------
+# PUT /api/v1/business/applications/<app_id>/review
+# -------------------------------------------
+def review_business_application(app_id: int):
+    data = request.get_json() or {}
+    action = (data.get("action") or "").lower()
+    
+    if action not in {"approve", "reject"}:
+        return jsonify({"error": "action must be 'approve' or 'reject'"}), 400
+        
+    db = SessionLocal()
+    try:
+        app_entry = db.get(BusinessApplication, app_id)
+        if not app_entry:
+            return jsonify({"error": "Application not found"}), 404
+            
+        app_entry.status = "approved" if action == "approve" else "rejected"
+        
+        # If approved, update stamp_status in Business table
+        if app_entry.status == "approved":
+            from controllers.business_controller import Business
+            biz = db.get(Business, int(app_entry.business_id))
+            if biz:
+                biz.stamp_status = "approved"
+            else:
+                from controllers.auth_controller import User
+                user = db.get(User, int(app_entry.business_id))
+                if user:
+                    new_biz = Business(
+                        id=user.id,
+                        name=user.name,
+                        location=user.contact,
+                        stamp_status="approved"
+                    )
+                    db.add(new_biz)
+        
+        db.commit()
+        return jsonify({
+            "message": f"Application {app_entry.status} successfully",
+            "application": {
+                "id": app_entry.id,
+                "business_id": app_entry.business_id,
+                "status": app_entry.status
+            }
+        }), 200
+    except Exception as e:
+        db.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        db.close()

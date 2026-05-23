@@ -515,7 +515,7 @@ def scan_qr():
         qr.transaction_id = tx_id
         db.commit()
 
-        # Mine reward block immediately
+        # Confirm block immediately
         blockchain_engine.mine_pending_transactions(db, "SYSTEM")
 
         return jsonify({
@@ -661,7 +661,7 @@ def approve_verification(verification_id):
         verification.transaction_id = tx_id
         db.commit()
 
-        # Mine block immediately
+        # Confirm block immediately
         blockchain_engine.mine_pending_transactions(db, "SYSTEM")
 
         return jsonify({
@@ -791,7 +791,7 @@ def mine_block():
 
         return jsonify({
             "success": True,
-            "message": f"Block #{block['index']} mined successfully",
+            "message": f"Block #{block['index']} successfully confirmed onto the blockchain",
             "data": {
                 "block_index": block["index"],
                 "block_hash": block["hash"],
@@ -872,7 +872,7 @@ def index():
                 "GET /api/leaderboard": "Get top users",
                 "GET /api/transactions/<user_id>": "Get transaction history",
                 "GET /api/stats": "Get system statistics",
-                "POST /api/mine": "Mine pending transactions",
+                "POST /api/mine": "Confirm pending transactions onto the blockchain",
                 "POST /api/upload-image": "Upload image"
             }
         }

@@ -11,6 +11,7 @@ import { useEventListener } from "expo";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SERVER } from "../../config";
 
 const SplashScreen = ({ navigation }) => {
   const videoRef = useRef(null);
@@ -40,8 +41,22 @@ const SplashScreen = ({ navigation }) => {
     try {
       const storedUser = await AsyncStorage.getItem("prakriti_user");
       const storedRole = await AsyncStorage.getItem("prakriti_role");
+      const storedToken = await AsyncStorage.getItem("prakriti_token");
 
-      if (storedUser && storedRole) {
+      if (storedUser && storedRole && storedToken) {
+        try {
+          const res = await fetch(`${SERVER}/api/v1/auth/verify-token`, {
+            headers: { "Authorization": `Bearer ${storedToken}` }
+          });
+          if (res.status === 401) {
+            await AsyncStorage.multiRemove(["prakriti_token", "prakriti_user", "prakriti_role"]);
+            return navigation.replace("Login");
+          }
+        } catch (netErr) {
+          // Keep offline session for resilience
+          console.log("[Splash Debug] Offline fallback permitted:", netErr);
+        }
+
         if (storedRole === "user") return navigation.replace("Home");
         if (storedRole === "business") return navigation.replace("BusinessDashboard");
         if (storedRole === "verifier") return navigation.replace("VerifierDashboard");

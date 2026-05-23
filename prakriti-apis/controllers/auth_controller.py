@@ -273,3 +273,90 @@ def get_profile_by_id(user_id):
         return jsonify({"error": str(e)}), 500
     finally:
         db.close()
+
+def update_profile(user_id, data):
+    name = data.get("name")
+    contact = data.get("contact")
+
+    if not name or not contact:
+        return jsonify({"error": "Name and contact are required"}), 400
+
+    if user_id == 9999:
+        return jsonify({"success": True, "message": "Master Verifier profile updated successfully (Mock)"}), 200
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter_by(id=user_id).first()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        if contact != user.contact:
+            existing_user = db.execute(select(User).where(User.contact == contact)).scalar_one_or_none()
+            if existing_user:
+                return jsonify({"error": "Contact already registered by another account"}), 409
+
+        user.name = name.strip()
+        old_contact = user.contact
+        user.contact = contact.strip()
+
+        try:
+            bc_user = db.query(BCUser).filter((BCUser.email == old_contact) | (BCUser.phone == old_contact)).first()
+            if bc_user:
+                bc_user.name = user.name
+                is_email = "@" in user.contact
+                bc_user.email = user.contact if is_email else None
+                bc_user.phone = user.contact if not is_email else None
+        except Exception as sync_err:
+            print(f"Warning: Failed to sync profile update with blockchain: {sync_err}")
+
+        db.commit()
+        db.refresh(user)
+
+        return jsonify({
+            "success": True,
+            "message": "Profile updated successfully",
+            "user": {
+                "id": user.id,
+                "name": user.name,
+                "contact": user.contact,
+                "role": user.role,
+                "wallet_address": user.wallet_address
+            }
+        }), 200
+    except Exception as e:
+        db.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        db.close()
+
+def change_password(user_id, data):
+    current_password = data.get("current_password")
+    new_password = data.get("new_password")
+
+    if not current_password or not new_password:
+        return jsonify({"error": "Current and new passwords are required"}), 400
+
+    if user_id == 9999:
+        return jsonify({"success": True, "message": "Master Verifier password changed successfully (Mock)"}), 200
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter_by(id=user_id).first()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        if not verify_password(current_password, user.password_hash):
+            return jsonify({"error": "Invalid current password"}), 401
+
+        user.password_hash = hash_password(new_password)
+        db.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Password changed successfully"
+        }), 200
+    except Exception as e:
+        db.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        db.close()

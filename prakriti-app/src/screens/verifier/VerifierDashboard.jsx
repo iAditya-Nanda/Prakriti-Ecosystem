@@ -113,7 +113,7 @@ const VerifierDashboard = ({ navigation }) => {
 
           <TouchableOpacity
             style={styles.profileBtn}
-            onPress={() => navigation.navigate("Profile")}
+            onPress={() => navigation.navigate("VerifierProfile")}
             activeOpacity={0.8}
           >
             <Ionicons name="person-circle-outline" size={26} color="#0E6E59" />

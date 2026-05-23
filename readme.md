@@ -6,7 +6,7 @@
 [![PRs](https://img.shields.io/badge/PRs-Welcome-brightgreen.svg)]()
 [![Open Source](https://img.shields.io/badge/Open%20Source-%E2%9D%A4-orange.svg)]()
 
-**Prakriti** (Nature) is a decentralized, fully open-source, AI-integrated ecosystem designed to solve the growing environmental challenge in tourist-heavy and geographically sensitive regions. By combining a **Custom PoW Blockchain** for rewards, **Computer Vision** for waste validation, and **Mobile/Web interfaces**, Prakriti transforms environmental responsibility into a rewarding digital economy.
+**Prakriti** (Nature) is a decentralized, fully open-source, AI-integrated ecosystem designed to solve the growing environmental challenge in tourist-heavy and geographically sensitive regions. By combining a **Custom Blockchain** for secure reward transactions, **Computer Vision** for waste validation, and **Mobile/Web interfaces**, Prakriti transforms environmental responsibility into a rewarding digital economy.
 
 ---
 
@@ -37,7 +37,7 @@ graph TD
 
 ## ✨ Core Features
 
-*   **⛓️ Zero-Gas GP Blockchain**: A local, custom Proof-of-Work (PoW) ledger for rewarding eco-actions (Green Points - GP) without complex cryptocurrency transaction costs.
+*   **⛓️ Zero-Gas GP Blockchain**: A local, custom secure blockchain ledger for rewarding eco-actions (Green Points - GP) securely with zero transaction overhead.
 *   **👁️ Ultra-Fast AI Vision Guard**: Fast waste classification and litter reporting powered by `prakriti-vision` (LLaVA), optimized with **on-device downscaling** to achieve under-2-second end-to-end analysis.
 *   **💬 Real-Time Eco-Copilot**: A sustainability-focused chat assistant powered by `prakriti-chat` (Llama), using modern **WinterCG `expo/fetch` streaming APIs** for instant token-by-token Hermes response delivery.
 *   **💧 Smart Refill Stations**: QR-based tracking for water and detergent refills to reduce single-use plastic consumption.

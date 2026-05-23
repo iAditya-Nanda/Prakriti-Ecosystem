@@ -124,12 +124,18 @@ const AIChatThreadScreen = ({ route, navigation }) => {
     };
 
     try {
+      const token = await AsyncStorage.getItem("prakriti_token");
+      const headers = {
+        "Content-Type": "application/json",
+        "Accept": "text/event-stream",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const response = await fetch(CHAT_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "text/event-stream",
-        },
+        headers,
         body: JSON.stringify({ message: text, stream: true }),
       });
 
@@ -246,8 +252,15 @@ const AIChatThreadScreen = ({ route, navigation }) => {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 120000);
 
+      const token = await AsyncStorage.getItem("prakriti_token");
+      const headers = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const res = await fetch(ANALYZE_URL, {
         method: "POST",
+        headers,
         body: fd,
         signal: controller.signal,
       });
@@ -290,8 +303,16 @@ const AIChatThreadScreen = ({ route, navigation }) => {
 
   const clearChat = async () => {
     try {
+      const token = await AsyncStorage.getItem("prakriti_token");
+      const headers = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
       // Fire-and-forget clear request to backend without blocking local UI reset
-      fetch(CLEAR_URL, { method: "POST" }).catch((e) => 
+      fetch(CLEAR_URL, { 
+        method: "POST",
+        headers
+      }).catch((e) => 
         console.log("Backend chat clear error (ignoring to reset locally):", e)
       );
     } catch (err) {

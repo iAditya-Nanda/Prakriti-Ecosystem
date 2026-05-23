@@ -7,4 +7,4 @@ python-dotenv
 werkzeug
 pyjwt
 ollama
-Pillow
+pillow

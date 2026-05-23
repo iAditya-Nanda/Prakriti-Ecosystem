@@ -16,6 +16,8 @@ MODEL_NAME = "prakriti-chat:latest"
 ai_chat_bp = Blueprint('ai_chat', __name__)
 CORS(ai_chat_bp)
 
+from utils.security import token_required
+
 # In-memory chat history (per process)
 chat_history = []
 
@@ -34,6 +36,7 @@ def build_prompt(user_input: str) -> str:
     return base_prompt
 
 @ai_chat_bp.route("/chat", methods=["POST"])
+@token_required
 def chat():
     """Chat endpoint supporting SSE streaming or JSON fallback."""
     data = request.get_json(force=True)
@@ -87,6 +90,7 @@ def chat():
             return jsonify({"error": str(e)}), 500
 
 @ai_chat_bp.route("/clear_history", methods=["POST"])
+@token_required
 def clear_history():
     """Reset the in‑memory chat history."""
     chat_history.clear()

@@ -194,7 +194,7 @@ def mark_qr_scanned():
                     bc_qr.used_at = time.time()
                     bc_qr.transaction_id = tx_id
                     
-                    # Mine the reward block immediately
+                    # Confirm transaction block immediately
                     blockchain_engine.mine_pending_transactions(db, "SYSTEM")
                     blockchain_points = int(bc_qr.reward_amount)
             except Exception as blockchain_err:

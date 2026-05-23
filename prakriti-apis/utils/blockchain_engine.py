@@ -34,7 +34,7 @@ def serialize_transaction(tx: BlockchainTransaction) -> dict:
     return d
 
 def ensure_genesis_block(db_session):
-    """Ensure genesis block exists in database, mine it if missing"""
+    """Ensure genesis block exists in database, confirm it if missing"""
     first_block = db_session.query(Block).filter_by(block_index=0).first()
     if first_block:
         return
@@ -99,7 +99,7 @@ def add_transaction(db_session, sender: str, recipient: str, amount: float,
     return tx_id
 
 def mine_pending_transactions(db_session, miner_address: str) -> dict:
-    """Mine all pending transactions into a new Block"""
+    """Confirm and commit all pending transactions into a new Block"""
     ensure_genesis_block(db_session)
     latest_block = get_latest_block(db_session)
     next_index = latest_block.block_index + 1
@@ -107,7 +107,7 @@ def mine_pending_transactions(db_session, miner_address: str) -> dict:
     # Query all active pending transactions in database
     pending_txs = db_session.query(BlockchainTransaction).filter_by(block_index=None).all()
     
-    # Generate system mining reward transaction
+    # Generate system validation reward transaction
     reward_tx_id = hashlib.sha256(f"SYSTEM_{miner_address}_{MINING_REWARD}_{time.time()}_mining_reward".encode()).hexdigest()[:16]
     reward_tx = BlockchainTransaction(
         transaction_id=reward_tx_id,
@@ -142,7 +142,7 @@ def mine_pending_transactions(db_session, miner_address: str) -> dict:
     )
     db_session.add(new_block)
     
-    # Update all mined transactions to point to this block index
+    # Update all committed transactions to point to this block index
     for tx in pending_txs:
         tx.block_index = next_index
     reward_tx.block_index = next_index
@@ -187,7 +187,7 @@ def is_chain_valid(db_session) -> bool:
         current_block = blocks[i]
         previous_block = blocks[i - 1]
         
-        # Query mined transactions in this block
+        # Query committed transactions in this block
         txs = db_session.query(BlockchainTransaction).filter_by(block_index=current_block.block_index).all()
         serialized_txs = [serialize_transaction(tx) for tx in txs]
         
@@ -213,7 +213,7 @@ def is_chain_valid(db_session) -> bool:
     return True
 
 def get_transaction_history(db_session, wallet_address: str) -> list:
-    """Fetch complete list of mined transactions for wallet address"""
+    """Fetch complete list of confirmed transactions for wallet address"""
     history = []
     txs = db_session.query(BlockchainTransaction).filter(
         BlockchainTransaction.block_index.isnot(None),
