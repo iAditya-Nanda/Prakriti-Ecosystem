@@ -28,6 +28,7 @@ share/python-wheels/
 MANIFEST
 .venv
 venv/
+prakriti_venv/
 ENV/
 env/
 pythonenv/

@@ -2,7 +2,9 @@ flask
 flask-cors
 uvicorn
 sqlalchemy
-
+requests
 python-dotenv
 werkzeug
 pyjwt
+ollama
+Pillow

@@ -44,10 +44,10 @@ trap cleanup SIGINT SIGTERM
 echo -e "${CYAN}[*] Setting up environment...${NC}"
 
 # Activate virtual environment if it exists
-if [ ! -d "venv" ]; then
-    echo -e "${YELLOW}[*] Creating Python virtual environment...${NC}"
-    python3 -m venv venv
-    source venv/bin/activate
+if [ ! -d "prakriti_venv" ]; then
+    echo -e "${YELLOW}[*] Creating Python virtual environment (prakriti_venv)...${NC}"
+    python3 -m venv prakriti_venv
+    source prakriti_venv/bin/activate
     if [ -f "requirements.txt" ]; then
         echo -e "${YELLOW}[*] Installing dependencies from requirements.txt...${NC}"
         pip install -r requirements.txt
@@ -58,7 +58,7 @@ if [ ! -d "venv" ]; then
         echo -e "${YELLOW}[!] No requirements.txt found; proceeding without installing packages.${NC}"
     fi
 else
-    source venv/bin/activate
+    source prakriti_venv/bin/activate
 fi
 echo -e "${GREEN}[+] Virtual environment active.${NC}"
 
@@ -83,17 +83,30 @@ LOCAL_IP=$(get_local_ip)
 echo -e "${CYAN}[*] Starting Flask API server...${NC}"
 cd prakriti-apis
 python -u server.py > ../api.log 2>&1 &
+SERVER_PID=$!
 cd ..
 
-# Wait briefly to verify it launched successfully
-sleep 1.5
+# Wait for the Flask server to bind to port 8080 (up to 15 seconds)
+echo -e "${CYAN}[*] Waiting for Flask server to bind to port 8080...${NC}"
+SERVER_STARTED=false
+for i in {1..30}; do
+    API_PID=$(lsof -t -i:8080 2>/dev/null || true)
+    if [ -n "$API_PID" ]; then
+        SERVER_STARTED=true
+        break
+    fi
+    # Check if the python process died early
+    if ! kill -0 $SERVER_PID 2>/dev/null; then
+        echo -e "${RED}[x] Flask server process died unexpectedly on boot.${NC}"
+        break
+    fi
+    sleep 0.5
+done
 
-# Check if the process is running on port 8080
-API_PID=$(lsof -t -i:8080 2>/dev/null || true)
-if [ -z "$API_PID" ]; then
+if [ "$SERVER_STARTED" = false ]; then
     echo -e "${RED}[x] Failed to start Flask server. Check api.log for details:${NC}"
     if [ -f "api.log" ]; then
-        tail -n 15 api.log
+        tail -n 25 api.log
     fi
     exit 1
 fi
