@@ -94,10 +94,10 @@ Create and build the custom models in Ollama:
 
 ```bash
 # Build the Chat Model
-ollama create prakriti-chat -f ./modelfles/chat.modelfile
+ollama create prakriti-chat -f ./modelfles/chat/Modelfile
 
 # Build the Vision Model
-ollama create prakriti-vision -f ./modelfles/vision.modelfile
+ollama create prakriti-vision -f ./modelfles/vision/Modelfile
 ```
 
 ### 2. Backend API Setup
@@ -106,8 +106,8 @@ Configure the Python environment and database:
 ```bash
 cd prakriti-apis
 # Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv prakriti-venv
+source prakriti-venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
