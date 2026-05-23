@@ -36,6 +36,14 @@ app.register_blueprint(blockchain_bp, url_prefix="/api")
 app.register_blueprint(ai_chat_bp, url_prefix="/api/v1/ai")
 app.register_blueprint(ai_vision_bp, url_prefix="/api/v1/ai")
 
+from flask import send_from_directory
+import os
+
+@app.route("/uploads/<path:filename>")
+def serve_uploads(filename):
+    uploads_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
+    return send_from_directory(uploads_dir, filename)
+
 @app.route("/")
 def home():
     return {"message": "Prakriti API is running"}

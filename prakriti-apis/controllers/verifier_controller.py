@@ -23,13 +23,19 @@ Base.metadata.create_all(bind=engine)
 def get_verifier_dashboard(verifier_id: int):
     db = SessionLocal()
     try:
+        from controllers.tourist_submission_controller import TouristSubmission
+        pending_count = db.query(TouristSubmission).filter_by(status="pending").count()
+        approved_count = db.query(TouristSubmission).filter_by(status="approved").count()
+        rejected_count = db.query(TouristSubmission).filter_by(status="rejected").count()
+
         # Master User Bypass
         if verifier_id == 9999:
             return jsonify({
                 "verifierName": "Master Verifier",
                 "department": "Department of Environment",
-                "verifiedCount": 450,
-                "pendingCount": 12
+                "verifiedCount": approved_count,
+                "pendingCount": pending_count,
+                "rejectedItems": rejected_count
             }), 200
 
         verifier = db.get(Verifier, verifier_id)
@@ -39,9 +45,9 @@ def get_verifier_dashboard(verifier_id: int):
         return jsonify({
             "verifier_id": verifier.id,
             "name": verifier.name,
-            "pendingVerifications": verifier.pending_verifications,
-            "approvedActions": verifier.approved_actions,
-            "rejectedItems": verifier.rejected_items
+            "pendingVerifications": pending_count,
+            "approvedActions": approved_count,
+            "rejectedItems": rejected_count
         }), 200
     finally:
         db.close()

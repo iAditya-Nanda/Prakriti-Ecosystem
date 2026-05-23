@@ -101,6 +101,9 @@ const Login = ({ navigation }) => {
       // ✅ Save session persistently
       await AsyncStorage.setItem("prakriti_user", JSON.stringify(data.user));
       await AsyncStorage.setItem("prakriti_role", data.user.role);
+      if (data.token) {
+        await AsyncStorage.setItem("prakriti_token", data.token);
+      }
 
       // ✅ Navigate by role
       if (data.user.role === "user") navigation.replace("Home");

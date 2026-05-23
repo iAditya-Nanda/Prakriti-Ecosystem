@@ -25,7 +25,7 @@ def verify_password(password: str, stored_hash: str) -> bool:
 
 def generate_access_token(user_id: int, role: str) -> str:
     payload = {
-        "sub": user_id,
+        "sub": str(user_id),
         "role": role,
         "exp": datetime.utcnow() + timedelta(hours=1),
         "iat": datetime.utcnow(),
@@ -35,7 +35,7 @@ def generate_access_token(user_id: int, role: str) -> str:
 
 def generate_refresh_token(user_id: int, role: str) -> str:
     payload = {
-        "sub": user_id,
+        "sub": str(user_id),
         "role": role,
         "exp": datetime.utcnow() + timedelta(days=7),
         "iat": datetime.utcnow(),
@@ -45,7 +45,7 @@ def generate_refresh_token(user_id: int, role: str) -> str:
 
 def decode_token(token: str) -> dict:
     try:
-        return jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        return jwt.decode(token, JWT_SECRET, algorithms=["HS256"], options={"verify_sub": False})
     except jwt.ExpiredSignatureError:
         return None
     except jwt.InvalidTokenError:
@@ -55,20 +55,27 @@ def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         token = None
-        if "Authorization" in request.headers:
-            auth_header = request.headers["Authorization"]
-            if auth_header.startswith("Bearer "):
-                token = auth_header.split(" ")[1]
+        auth_header = request.headers.get("Authorization")
+        print(f"[Auth Debug] [{request.method} {request.path}] Authorization Header: {auth_header}")
+        
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
         
         if not token:
+            print(f"[Auth Debug] [{request.method} {request.path}] Rejecting: Token is missing.")
             return jsonify({"success": False, "error": "Token is missing"}), 401
             
         payload = decode_token(token)
         if not payload or payload.get("type") != "access":
+            print(f"[Auth Debug] [{request.method} {request.path}] Rejecting: Token is invalid or expired. Payload: {payload}")
             return jsonify({"success": False, "error": "Token is invalid or expired"}), 401
             
-        g.user_id = payload["sub"]
+        try:
+            g.user_id = int(payload["sub"])
+        except ValueError:
+            g.user_id = payload["sub"]
         g.user_role = payload["role"]
+        print(f"[Auth Debug] [{request.method} {request.path}] Permitting: User {g.user_id} ({g.user_role}).")
         return f(*args, **kwargs)
     return decorated
 

@@ -86,8 +86,15 @@ def signup_user(data):
         db.commit()
         db.refresh(new_user)
 
+        # Wrap signup response with JWT access and refresh tokens
+        access_token = generate_access_token(new_user.id, new_user.role)
+        refresh_token = generate_refresh_token(new_user.id, new_user.role)
+
         return jsonify({
             "message": "Signup successful",
+            "token": access_token,
+            "accessToken": access_token,
+            "refreshToken": refresh_token,
             "user": {
                 "id": new_user.id,
                 "name": new_user.name,

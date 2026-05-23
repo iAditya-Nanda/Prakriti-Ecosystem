@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { SERVER } from "../../config";
 
@@ -23,7 +24,14 @@ const VerifierQueueScreen = ({ navigation }) => {
   const loadSubmissions = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${SERVER}/api/v1/submissions/all?status=pending`);
+      const token = await AsyncStorage.getItem("prakriti_token");
+      const headers = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      const res = await fetch(`${SERVER}/api/v1/submissions/all?status=pending`, {
+        headers,
+      });
       const json = await res.json();
       setSubmissions(json.submissions || []);
     } catch (err) {
@@ -139,7 +147,7 @@ const VerifierQueueScreen = ({ navigation }) => {
         {/* EMPTY STATE */}
         {!loading && filtered.length === 0 && (
           <View style={styles.emptyBox}>
-            <MaterialCommunityIcons name="leaf-check" size={56} color="#8AA094" />
+            <MaterialCommunityIcons name="leaf" size={56} color="#8AA094" />
             <Text style={styles.emptyTitle}>No Requests Right Now</Text>
             <Text style={styles.emptySub}>
               All user submissions are already reviewed. Check back later.

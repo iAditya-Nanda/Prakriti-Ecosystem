@@ -17,7 +17,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImageManipulator from "expo-image-manipulator";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Ionicons from "@expo/vector-icons/Ionicons";
-
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ANALYZE_URL, SERVER } from "../../config";
 
 const ANALYZER_URL = ANALYZE_URL;
@@ -35,6 +35,7 @@ const HowToDisposeScreen = ({ navigation }) => {
   const [modelUsed, setModelUsed] = useState(null);
   const [previewURI, setPreviewURI] = useState(null);
   const [proofImage, setProofImage] = useState(null);
+  const [scannedImageName, setScannedImageName] = useState(null);
 
   // Animations
   const fadeIn = useRef(new Animated.Value(0)).current;
@@ -224,6 +225,7 @@ const HowToDisposeScreen = ({ navigation }) => {
 
       setDetected(result.analysis);
       setModelUsed(result.model_used || null);
+      setScannedImageName(result.source_image || null);
       setPhase("result");
       startFade();
     } catch (e) {
@@ -246,6 +248,22 @@ const HowToDisposeScreen = ({ navigation }) => {
       setProofImage(img);
       setPhase("uploading");
 
+      const token = await AsyncStorage.getItem("prakriti_token");
+      console.log("[Proof Upload Debug] Loaded Token:", token);
+      if (!token) {
+        Alert.alert(
+          "Session Refresh Required",
+          "Your current session doesn't have an active security token.\n\nPlease log out from your Profile screen and log back in to fully enable point rewards! 🌿"
+        );
+        setPhase("verify");
+        return;
+      }
+
+      const storedUser = await AsyncStorage.getItem("prakriti_user");
+      const user = storedUser ? JSON.parse(storedUser) : null;
+      const userId = user?.id || 7;
+      console.log("[Proof Upload Debug] Loaded User ID:", userId);
+
       const fd = new FormData();
       fd.append("file", {
         uri: img,
@@ -253,33 +271,71 @@ const HowToDisposeScreen = ({ navigation }) => {
         type: "image/jpeg",
       });
 
+      const uploadHeaders = {};
+      if (token) {
+        uploadHeaders["Authorization"] = `Bearer ${token}`;
+      }
+      console.log("[Proof Upload Debug] Requesting upload to:", `${SUBMIT_SERVER}/api/v1/submissions/upload`);
+      console.log("[Proof Upload Debug] Headers:", uploadHeaders);
+
       const uploadRes = await fetch(
         `${SUBMIT_SERVER}/api/v1/submissions/upload`,
         {
           method: "POST",
+          headers: uploadHeaders,
           body: fd,
         }
       );
 
-      const uploadJson = await uploadRes.json();
+      console.log("[Proof Upload Debug] Upload Response Status:", uploadRes.status);
+      const uploadText = await uploadRes.text();
+      console.log("[Proof Upload Debug] Upload Response Body:", uploadText);
+
+      let uploadJson;
+      try {
+        uploadJson = JSON.parse(uploadText);
+      } catch (jsonErr) {
+        throw new Error(`Upload returned non-JSON: ${uploadText}`);
+      }
+
       const imageUrl = uploadJson?.url;
-      if (!imageUrl) throw new Error("Upload failed");
+      if (!imageUrl) throw new Error("Upload failed to return image URL");
+      console.log("[Proof Upload Debug] Uploaded Image URL:", imageUrl);
+
+      const submissionHeaders = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        submissionHeaders["Authorization"] = `Bearer ${token}`;
+      }
+      console.log("[Proof Upload Debug] Submitting transaction to:", `${SUBMIT_SERVER}/api/v1/submissions/add`);
 
       const submissionRes = await fetch(
         `${SUBMIT_SERVER}/api/v1/submissions/add`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: submissionHeaders,
           body: JSON.stringify({
-            user_id: 7, // Default demo tourist session
+            user_id: userId,
             title: `Correct Disposal: ${detected?.summary || "Item"}`,
             location: "Himachal Eco Zone",
             image_url: imageUrl,
+            scanned_image_url: scannedImageName ? `/uploads/${scannedImageName}` : null,
           }),
         }
       );
 
-      const submissionJson = await submissionRes.json();
+      console.log("[Proof Upload Debug] Submission Status:", submissionRes.status);
+      const submissionText = await submissionRes.text();
+      console.log("[Proof Upload Debug] Submission Response:", submissionText);
+
+      let submissionJson;
+      try {
+        submissionJson = JSON.parse(submissionText);
+      } catch (jsonErr) {
+        throw new Error(`Submission returned non-JSON: ${submissionText}`);
+      }
+
       console.log("Submission Recorded:", submissionJson);
 
       setPhase("done");

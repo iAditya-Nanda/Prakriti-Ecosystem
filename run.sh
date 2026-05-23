@@ -62,6 +62,69 @@ else
 fi
 echo -e "${GREEN}[+] Virtual environment active.${NC}"
 
+# Check Ollama service status
+echo -e "${CYAN}[*] Checking Ollama service status...${NC}"
+if command -v ollama >/dev/null 2>&1; then
+    # Try running ollama list to see if the engine is running
+    OLLAMA_MODELS=$(ollama list 2>&1)
+    OLLAMA_STATUS=$?
+    if [ $OLLAMA_STATUS -eq 0 ]; then
+        echo -e "${GREEN}[+] Ollama service is active. Installed models:${NC}"
+        # Print the models list, indenting them for clean formatting
+        echo "$OLLAMA_MODELS" | sed 's/^/    /'
+        
+        # Proactively check if the specific Prakriti models are compiled
+        if ! echo "$OLLAMA_MODELS" | grep -q "prakriti-chat"; then
+            echo -e "${YELLOW}[!] Warning: 'prakriti-chat' model not found. Build it using: ollama create prakriti-chat -f ./modalfles/chat.modelfile${NC}"
+        fi
+        if ! echo "$OLLAMA_MODELS" | grep -q "prakriti-vision"; then
+            echo -e "${YELLOW}[!] Warning: 'prakriti-vision' model not found. Build it using: ollama create prakriti-vision -f ./modalfles/vision.modelfile${NC}"
+        fi
+    else
+        echo -e "${YELLOW}[!] Ollama background service is not running. Starting it automatically in the background...${NC}"
+        ollama serve > ollama.log 2>&1 &
+        OLLAMA_PID=$!
+        
+        # Wait up to 12 seconds for Ollama service to start responding
+        echo -e "${CYAN}[*] Waiting for Ollama service to respond...${NC}"
+        OLLAMA_STARTED=false
+        for j in {1..24}; do
+            ollama list >/dev/null 2>&1
+            if [ $? -eq 0 ]; then
+                OLLAMA_STARTED=true
+                break
+            fi
+            # Check if the process died early
+            if ! kill -0 $OLLAMA_PID 2>/dev/null; then
+                echo -e "${RED}[x] Ollama service process died unexpectedly.${NC}"
+                break
+            fi
+            sleep 0.5
+        done
+        
+        if [ "$OLLAMA_STARTED" = true ]; then
+            echo -e "${GREEN}[+] Ollama service successfully started in the background (PID: $OLLAMA_PID).${NC}"
+            OLLAMA_MODELS=$(ollama list 2>&1)
+            echo -e "${GREEN}[+] Installed models:${NC}"
+            echo "$OLLAMA_MODELS" | sed 's/^/    /'
+            
+            # Check for required models
+            if ! echo "$OLLAMA_MODELS" | grep -q "prakriti-chat"; then
+                echo -e "${YELLOW}[!] Warning: 'prakriti-chat' model not found. Build it using: ollama create prakriti-chat -f ./modalfles/chat.modelfile${NC}"
+            fi
+            if ! echo "$OLLAMA_MODELS" | grep -q "prakriti-vision"; then
+                echo -e "${YELLOW}[!] Warning: 'prakriti-vision' model not found. Build it using: ollama create prakriti-vision -f ./modalfles/vision.modelfile${NC}"
+            fi
+        else
+            echo -e "${RED}[x] Error: Failed to start Ollama background service. Check ollama.log for details.${NC}"
+            echo -e "${RED}[x] Please start the Ollama application manually and try again.${NC}"
+            exit 1
+        fi
+    fi
+else
+    echo -e "${YELLOW}[!] Warning: 'ollama' command not found. Please install Ollama (https://ollama.com) to run the AI Copilot features.${NC}"
+fi
+
 # Optional: free port 8080 in case it is occupied
 echo -e "${CYAN}[*] Checking port 8080...${NC}"
 if command -v lsof >/dev/null 2>&1; then

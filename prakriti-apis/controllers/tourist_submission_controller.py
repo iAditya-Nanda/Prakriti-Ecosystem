@@ -32,6 +32,7 @@ class TouristSubmission(Base):
     title = Column(String(255), nullable=False)
     location = Column(String(255), nullable=False)
     image_url = Column(String(1000), nullable=True)
+    scanned_image_url = Column(String(1000), nullable=True)
     status = Column(String(20), nullable=False, default="pending")  # pending|approved|rejected
     created_at = Column(DateTime, default=datetime.utcnow)
     reviewed_at = Column(DateTime, nullable=True)
@@ -79,6 +80,15 @@ class UploadCatalog(Base):
 # Verify/create tables
 try:
     Base.metadata.create_all(bind=engine)
+    # Self-healing migration: Add scanned_image_url if missing
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("ALTER TABLE tourist_submissions ADD COLUMN scanned_image_url VARCHAR(1000)"))
+            conn.commit()
+            print("[Migration] Added column scanned_image_url to tourist_submissions successfully.")
+        except Exception:
+            pass # Already exists
 except Exception as err:
     print(f"Warning: Failed to verify tourist_submissions tables: {err}")
 
@@ -146,6 +156,7 @@ def add_tourist_submission(data: dict):
             title=data["title"].strip(),
             location=data["location"].strip(),
             image_url=data.get("image_url"),
+            scanned_image_url=data.get("scanned_image_url"),
             status="pending"
         )
         db.add(sub)
@@ -171,6 +182,7 @@ def add_tourist_submission(data: dict):
                 "title": sub.title,
                 "location": sub.location,
                 "image": sub.image_url,
+                "scanned_image": sub.scanned_image_url,
                 "status": sub.status,
                 "timestamp": sub.created_at.isoformat()
             }
@@ -205,6 +217,7 @@ def get_all_tourist_submissions():
             "location": a.location,
             "status": a.status,
             "image": a.image_url,
+            "scanned_image": a.scanned_image_url,
             "timestamp": a.created_at.isoformat(),
             "reviewer_id": a.reviewer_id,
             "remarks": a.remarks,

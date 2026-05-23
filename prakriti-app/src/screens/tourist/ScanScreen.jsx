@@ -51,12 +51,29 @@ const ScanScreen = ({ navigation }) => {
     try {
       const qr_id = data.trim();
 
+      const token = await AsyncStorage.getItem("prakriti_token");
+      if (!token) {
+        Alert.alert(
+          "Session Refresh Required",
+          "Your current session doesn't have an active security token.\n\nPlease log out from your Profile screen and log back in to scan rewards! 🌿"
+        );
+        setIsScanned(false);
+        return;
+      }
+
       const stored = await AsyncStorage.getItem("prakriti_user");
       const user = JSON.parse(stored);
 
+      const headers = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const res = await fetch(`${SERVER}/api/v1/qr/scan`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ qr_id, user_id: user.id }),
       });
 

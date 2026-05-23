@@ -32,7 +32,15 @@ const VerifierDashboard = ({ navigation }) => {
         return;
       }
 
-      const res = await fetch(`${SERVER}/api/v1/verifier/${user.id}`);
+      const token = await AsyncStorage.getItem("prakriti_token");
+      const headers = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(`${SERVER}/api/v1/verifier/${user.id}`, {
+        headers,
+      });
       const json = await res.json();
 
       setVerifier(json);

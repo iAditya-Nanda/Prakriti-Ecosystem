@@ -63,6 +63,9 @@ const Signup = ({ navigation, route }) => {
       if (res.status === 201) {
         await AsyncStorage.setItem("prakriti_user", JSON.stringify(data.user));
         await AsyncStorage.setItem("prakriti_role", data.user.role);
+        if (data.token) {
+          await AsyncStorage.setItem("prakriti_token", data.token);
+        }
 
         Alert.alert("Success 🎉", "Account created successfully!");
 

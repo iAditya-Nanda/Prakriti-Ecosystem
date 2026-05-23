@@ -37,7 +37,14 @@ const ProfileScreen = ({ navigation }) => {
 
       // Fetch fresh live details from PostgreSQL & Blockchain
       try {
-        const res = await fetch(`${SERVER}/api/v1/auth/profile/${parsed.id}`);
+        const token = await AsyncStorage.getItem("prakriti_token");
+        const headers = {};
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+        const res = await fetch(`${SERVER}/api/v1/auth/profile/${parsed.id}`, {
+          headers,
+        });
         const json = await res.json();
         if (json.success && json.user) {
           const updatedUser = { ...parsed, ...json.user };

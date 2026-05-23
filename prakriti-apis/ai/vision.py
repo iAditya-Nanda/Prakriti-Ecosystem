@@ -200,6 +200,7 @@ def analyze():
     image = request.files["image"]
     filename = secure_filename(image.filename)
     captured_path = os.path.join(UPLOAD_FOLDER, filename)
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     image.save(captured_path)
 
     # Optional proof image – second upload
@@ -235,6 +236,7 @@ def detect_litter():
     image = request.files["image"]
     filename = secure_filename(image.filename)
     path = os.path.join(UPLOAD_FOLDER, filename)
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     image.save(path)
     start = time.time()
     print(f"[Received] [{datetime.utcnow().strftime('%H:%M:%S')}] /detect_litter for {filename}")

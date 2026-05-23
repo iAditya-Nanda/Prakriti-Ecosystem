@@ -17,6 +17,7 @@ import * as Location from "expo-location";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MapView, { Marker } from "react-native-maps";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { SERVER_8000, SERVER_8080 } from "../../config";
 
@@ -152,6 +153,21 @@ const ReportLitterScreen = ({ navigation }) => {
 
       setLoading(true);
 
+      const token = await AsyncStorage.getItem("prakriti_token");
+      if (!token) {
+        Alert.alert(
+          "Session Refresh Required",
+          "Your current session doesn't have an active security token.\n\nPlease log out from your Profile screen and log back in to fully enable reports! 🌿"
+        );
+        setPhase("camera");
+        setLoading(false);
+        return;
+      }
+
+      const storedUser = await AsyncStorage.getItem("prakriti_user");
+      const user = storedUser ? JSON.parse(storedUser) : null;
+      const userId = user?.id || 7;
+
       const fd = new FormData();
       fd.append("file", {
         uri: image,
@@ -159,10 +175,16 @@ const ReportLitterScreen = ({ navigation }) => {
         type: "image/jpeg",
       });
 
+      const uploadHeaders = {};
+      if (token) {
+        uploadHeaders["Authorization"] = `Bearer ${token}`;
+      }
+
       const uploadRes = await fetch(
         `${SERVER_CHECK}/api/v1/submissions/upload`,
         {
           method: "POST",
+          headers: uploadHeaders,
           body: fd,
         }
       );
@@ -171,13 +193,20 @@ const ReportLitterScreen = ({ navigation }) => {
       const imageUrl = uploadJson?.url;
       if (!imageUrl) throw new Error("Upload failed");
 
+      const submissionHeaders = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        submissionHeaders["Authorization"] = `Bearer ${token}`;
+      }
+
       const submissionRes = await fetch(
         `${SERVER_CHECK}/api/v1/submissions/add`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: submissionHeaders,
           body: JSON.stringify({
-            user_id: 7, // Demo tourist user session
+            user_id: userId,
             title: `Litter: ${detection?.litter_type || "Report"}`,
             location: `${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)}`,
             image_url: imageUrl,
