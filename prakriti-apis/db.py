@@ -22,11 +22,13 @@ if not os.path.exists(DB_DIR):
     except Exception as path_err:
         print(f"Warning: Failed to create database directory {DB_DIR}: {path_err}")
 
-# Connect exclusively to local SQLite database
-sqlite_db_path = os.path.join(DB_DIR, "prakriti.db")
+# Connect exclusively to local SQLite database (Development vs Production modes)
+flask_env = os.getenv("FLASK_ENV", "development").lower()
+db_filename = "prakriti.db" if flask_env == "production" else "prakriti-dev.db"
+sqlite_db_path = os.path.join(DB_DIR, db_filename)
 engine = create_engine(f"sqlite:///{sqlite_db_path}", echo=False, future=True, connect_args={"check_same_thread": False})
 IS_SQLITE = True
-print(f"[Database] Connected exclusively to local SQLite database at: {sqlite_db_path}")
+print(f"[Database] Connected to {flask_env.upper()} database ({db_filename}) at: {sqlite_db_path}")
 
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 Base = declarative_base()

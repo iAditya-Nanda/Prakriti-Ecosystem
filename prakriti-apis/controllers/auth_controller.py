@@ -1,3 +1,4 @@
+import os
 import hashlib
 import time
 from datetime import datetime
@@ -32,6 +33,134 @@ try:
     print("Database tables verified/created successfully.")
 except Exception as e:
     print(f"Warning: Database connection failed. Working in Master Login mode only. Error: {e}")
+
+# -------------------------------------------
+# Seed default/test users if not already present
+# -------------------------------------------
+def seed_default_users():
+    """Seed the database with prefilled credentials securely if not already present."""
+    db = SessionLocal()
+    try:
+        default_users = [
+            {
+                "contact": "verifier@prakriti.ai",
+                "name": "Prakriti Verifier",
+                "password": "prakriti@verifier",
+                "role": "verifier",
+                "initial_balance": 150.0
+            },
+            {
+                "contact": "business@prakriti.ai",
+                "name": "Prakriti Business",
+                "password": "prakriti@business",
+                "role": "business",
+                "initial_balance": 200.0
+            },
+            {
+                "contact": "user@prakriti.ai",
+                "name": "Prakriti User",
+                "password": "prakriti@user",
+                "role": "user",
+                "initial_balance": 100.0
+            }
+        ]
+
+        for u_data in default_users:
+            # Check if user already exists in the local database users table
+            existing_user = db.execute(select(User).where(User.contact == u_data["contact"])).scalar_one_or_none()
+
+            if not existing_user:
+                print(f"[Seeding] Seeding missing default user: {u_data['contact']}...")
+                # Generate unique wallet address
+                wallet_address = hashlib.sha256(f"{u_data['name']}_seed_{time.time()}".encode()).hexdigest()[:20]
+
+                new_user = User(
+                    name=u_data["name"],
+                    contact=u_data["contact"],
+                    password_hash=hash_password(u_data["password"]),
+                    role=u_data["role"],
+                    wallet_address=wallet_address
+                )
+                db.add(new_user)
+                db.flush()  # Populates new_user.id
+
+                # Sync with BCUser
+                is_email = "@" in new_user.contact
+                blockchain_user = BCUser(
+                    name=new_user.name,
+                    email=new_user.contact if is_email else None,
+                    phone=new_user.contact if not is_email else None,
+                    role=new_user.role,
+                    wallet_address=wallet_address,
+                    created_at=time.time(),
+                    is_active=1
+                )
+                db.add(blockchain_user)
+
+                # Sync with specific role tables (verifier or business)
+                if u_data["role"] == "verifier":
+                    from controllers.verifier_controller import Verifier
+                    existing_verifier = db.get(Verifier, new_user.id)
+                    if not existing_verifier:
+                        v = Verifier(
+                            id=new_user.id,
+                            name=new_user.name,
+                            pending_verifications=0,
+                            approved_actions=0,
+                            rejected_items=0
+                        )
+                        db.add(v)
+                elif u_data["role"] == "business":
+                    from controllers.business_controller import Business
+                    existing_business = db.get(Business, new_user.id)
+                    if not existing_business:
+                        b = Business(
+                            id=new_user.id,
+                            name=new_user.name,
+                            location="Prakriti Hub, Shimla",
+                            stamp_status="approved",
+                            visitors=0,
+                            points_issued=0,
+                            refills_given=0
+                        )
+                        db.add(b)
+
+                db.commit()
+
+                # Grant initial balance to seeded users using real blockchain engine
+                try:
+                    blockchain_engine.add_transaction(
+                        db,
+                        sender="SYSTEM",
+                        recipient=wallet_address,
+                        amount=u_data["initial_balance"],
+                        transaction_type="system_grant"
+                    )
+                    blockchain_engine.mine_pending_transactions(db, miner_address="SYSTEM")
+                    print(f"[Seeding] Granted {u_data['initial_balance']} GP to {u_data['contact']} and confirmed block.")
+                except Exception as tx_err:
+                    print(f"Warning: Failed to seed transaction reward for {u_data['contact']}: {tx_err}")
+
+                print(f"[Seeding] Successfully seeded default user {u_data['contact']} (ID: {new_user.id})")
+            else:
+                # User already exists - keep existing data fully preserved
+                print(f"[Seeding] Default user {u_data['contact']} already exists (ID: {existing_user.id}). Preserving existing data.")
+
+    except Exception as err:
+        db.rollback()
+        print(f"[Seeding] Error seeding default users: {err}")
+    finally:
+        db.close()
+
+# Execute default user seeding on startup (ONLY in development mode!)
+try:
+    flask_env = os.getenv("FLASK_ENV", "development").lower()
+    if flask_env != "production":
+        seed_default_users()
+    else:
+        print("[Database] Production mode active. Skipping test user seeding to preserve database purity.")
+except Exception as e:
+    print(f"Warning: Failed to auto-seed default users: {e}")
 
 # -------------------------------------------
 # Signup Function
@@ -125,46 +254,56 @@ def login_user(data):
     if not contact or not password:
         return jsonify({"error": "Contact and password are required"}), 400
 
-    # Master Number Bypass with Role Selection
+    # Translate master bypass contacts to the corresponding seeded default email accounts
+    target_contact = contact
+    is_master_bypass = False
+    
     if contact == "1234567890":
-        role_map = {
-            "prakriti@user": "user",
-            "prakriti@business": "business",
-            "prakriti@verifier": "verifier",
-            "prakriti@2026": "verifier"  # Default master
+        role_email_map = {
+            "prakriti@verifier": "verifier@prakriti.ai",
+            "prakriti@2026": "verifier@prakriti.ai",  # Default master verifier
+            "prakriti@business": "business@prakriti.ai",
+            "prakriti@user": "user@prakriti.ai"
         }
-        
-        if password in role_map:
-            role = role_map[password]
-            # Wrap response with JWT access and refresh tokens
-            access_token = generate_access_token(9999, role)
-            refresh_token = generate_refresh_token(9999, role)
-            return jsonify({
-                "message": f"Master Login successful as {role.capitalize()}",
-                "token": access_token,
-                "accessToken": access_token,
-                "refreshToken": refresh_token,
-                "user": {
-                    "id": 9999,
-                    "name": f"Master {role.capitalize()}",
-                    "contact": "1234567890",
-                    "role": role,
-                    "wallet_address": "GP_MASTER_WALLET_ADDRESS",
-                    "balance": 150.0
-                }
-            }), 200
+        if password in role_email_map:
+            target_contact = role_email_map[password]
+            is_master_bypass = True
 
     db = SessionLocal()
     try:
-        user = db.execute(select(User).where(User.contact == contact)).scalar_one_or_none()
+        user = db.execute(select(User).where(User.contact == target_contact)).scalar_one_or_none()
 
         if not user:
+            # Safe fallback if seeding was deleted or failed during DB migration
+            if is_master_bypass:
+                role_map = {
+                    "prakriti@user": "user",
+                    "prakriti@business": "business",
+                    "prakriti@verifier": "verifier",
+                    "prakriti@2026": "verifier"
+                }
+                role = role_map.get(password, "verifier")
+                access_token = generate_access_token(9999, role)
+                refresh_token = generate_refresh_token(9999, role)
+                return jsonify({
+                    "message": f"Master Legacy Login successful as {role.capitalize()}",
+                    "token": access_token,
+                    "accessToken": access_token,
+                    "refreshToken": refresh_token,
+                    "user": {
+                        "id": 9999,
+                        "name": f"Master {role.capitalize()}",
+                        "contact": "1234567890",
+                        "role": role,
+                        "wallet_address": "GP_MASTER_WALLET_ADDRESS",
+                        "balance": 150.0
+                    }
+                }), 200
             return jsonify({"error": "User not found"}), 404
 
-        # Bypass check for development/master login
+        # Bypass credentials check if using valid master bypass login, otherwise verify password securely
         is_master_password = (password == "prakriti@2026")
-        
-        if not is_master_password and not verify_password(password, user.password_hash):
+        if not is_master_bypass and not is_master_password and not verify_password(password, user.password_hash):
             return jsonify({"error": "Invalid credentials"}), 401
 
         # Self-healing migration for legacy users without a wallet address
@@ -200,6 +339,9 @@ def login_user(data):
         # Wrap login response with JWT access and refresh tokens
         access_token = generate_access_token(user.id, user.role)
         refresh_token = generate_refresh_token(user.id, user.role)
+
+        # Print debug info
+        print(f"[Auth] Successful login for {user.contact} (ID: {user.id}, Role: {user.role}, Balance: {blockchain_balance} GP)")
 
         return jsonify({
             "message": "Login successful",
@@ -360,3 +502,43 @@ def change_password(user_id, data):
         return jsonify({"error": str(e)}), 500
     finally:
         db.close()
+
+def create_db_backup():
+    """Create a dated cryptographic snapshot/backup of the current SQLite database file."""
+    import shutil
+    import os
+    import time
+    
+    flask_env = os.getenv("FLASK_ENV", "development").lower()
+    db_filename = "prakriti.db" if flask_env == "production" else "prakriti-dev.db"
+    
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    DB_DIR = os.path.join(BASE_DIR, "database")
+    BACKUP_DIR = os.path.join(DB_DIR, "backups")
+    
+    src_path = os.path.join(DB_DIR, db_filename)
+    if not os.path.exists(src_path):
+        return jsonify({"success": False, "error": f"Database file {db_filename} not found."}), 404
+        
+    if not os.path.exists(BACKUP_DIR):
+        try:
+            os.makedirs(BACKUP_DIR)
+        except Exception as dir_err:
+            return jsonify({"success": False, "error": f"Failed to create backup directory: {str(dir_err)}"}), 500
+            
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    backup_filename = f"{os.path.splitext(db_filename)[0]}_backup_{timestamp}.db"
+    dest_path = os.path.join(BACKUP_DIR, backup_filename)
+    
+    try:
+        shutil.copy2(src_path, dest_path)
+        print(f"[Backup] Successfully created database snapshot: {dest_path}")
+        return jsonify({
+            "success": True, 
+            "message": "Database backup created successfully", 
+            "backup_file": backup_filename,
+            "path": dest_path
+        }), 200
+    except Exception as e:
+        print(f"[Backup] Failed to create database backup: {e}")
+        return jsonify({"success": False, "error": f"Backup copy failed: {str(e)}"}), 500

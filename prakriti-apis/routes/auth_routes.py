@@ -45,3 +45,9 @@ def update_user_password(user_id):
 @token_required
 def verify_token():
     return {"success": True, "message": "Token is valid"}, 200
+
+@auth_bp.route("/backup", methods=["POST"])
+@token_required
+def backup_database():
+    from controllers.auth_controller import create_db_backup
+    return create_db_backup()

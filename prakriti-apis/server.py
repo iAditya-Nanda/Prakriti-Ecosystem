@@ -89,4 +89,32 @@ def dashboard_stats():
             return {"success": False, "error": str(e)}, 500
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    flask_env = os.getenv("FLASK_ENV", "development").lower()
+    is_prod = (flask_env == "production")
+    
+    # Expose local network IP dynamically
+    import socket
+    local_ip = "127.0.0.1"
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+    except Exception:
+        pass
+
+    env_name = "Production (Flask / Safe Mode)" if is_prod else "Development (Flask / Debug Mode)"
+    
+    print("\n====================================================")
+    print("       Prakriti Backend API Successfully Started")
+    print("====================================================")
+    print("   *  Local URL:    http://localhost:8080")
+    if not is_prod:
+        print(f"   *  Network URL:  http://{local_ip}:8080")
+    print(f"   *  Environment:  {env_name}")
+    print("   *  Log File:     api.log")
+    print("   *  To View Logs: tail -f api.log")
+    print("====================================================")
+    print("         Press [Ctrl+C] at any time to stop the server\n")
+    
+    app.run(host="0.0.0.0", port=8080, debug=not is_prod)

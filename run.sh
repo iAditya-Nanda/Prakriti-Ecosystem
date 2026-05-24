@@ -182,7 +182,11 @@ echo -e "   ${CYAN}*${NC}  ${BOLD}Local URL:${NC}    ${CYAN}http://localhost:808
 if [ -n "$LOCAL_IP" ]; then
     echo -e "   ${CYAN}*${NC}  ${BOLD}Network URL:${NC}  ${CYAN}http://${LOCAL_IP}:8080${NC}"
 fi
-echo -e "   ${CYAN}*${NC}  ${BOLD}Environment:${NC}  Development (Flask / Debug Mode)"
+if [ "$FLASK_ENV" = "production" ]; then
+    echo -e "   ${CYAN}*${NC}  ${BOLD}Environment:${NC}  Production (Flask / Safe Mode)"
+else
+    echo -e "   ${CYAN}*${NC}  ${BOLD}Environment:${NC}  Development (Flask / Debug Mode)"
+fi
 echo -e "   ${CYAN}*${NC}  ${BOLD}Log File:${NC}     ${YELLOW}api.log${NC}"
 echo -e "   ${CYAN}*${NC}  ${BOLD}To View Logs:${NC} ${BOLD}tail -f api.log${NC}"
 echo -e "${GREEN}====================================================${NC}"

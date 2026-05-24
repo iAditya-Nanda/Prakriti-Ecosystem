@@ -4,7 +4,7 @@ import json
 from db import Block, BlockchainTransaction, BCLeaderboardCache, BCUser, BCPendingVerification, BCQRCode
 
 DIFFICULTY = 2
-MINING_REWARD = 10.0
+VALIDATION_REWARD = 10.0
 
 def calculate_block_hash(index: int, timestamp: float, transactions: list, previous_hash: str, nonce: int) -> str:
     """Calculate SHA-256 hash of block header and transactions"""
@@ -108,13 +108,13 @@ def mine_pending_transactions(db_session, miner_address: str) -> dict:
     pending_txs = db_session.query(BlockchainTransaction).filter_by(block_index=None).all()
     
     # Generate system validation reward transaction
-    reward_tx_id = hashlib.sha256(f"SYSTEM_{miner_address}_{MINING_REWARD}_{time.time()}_mining_reward".encode()).hexdigest()[:16]
+    reward_tx_id = hashlib.sha256(f"SYSTEM_{miner_address}_{VALIDATION_REWARD}_{time.time()}_validation_reward".encode()).hexdigest()[:16]
     reward_tx = BlockchainTransaction(
         transaction_id=reward_tx_id,
         sender_address="SYSTEM",
         recipient_address=miner_address,
-        amount=MINING_REWARD,
-        transaction_type="mining_reward",
+        amount=VALIDATION_REWARD,
+        transaction_type="validation_reward",
         timestamp=time.time(),
         block_index=None
     )
